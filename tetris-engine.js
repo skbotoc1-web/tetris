@@ -433,9 +433,7 @@
             if (this.dropCounter > currentSpeed) {
                 this.playerDrop();
             }
-
-            this.draw();
-            this.requestId = requestAnimationFrame(this.update.bind(this));
+            // Note: rendering is handled externally by main.js game loop
         }
 
         getGameState() {

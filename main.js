@@ -1,447 +1,330 @@
 // MIT License - Copyright (c) 2026 Stefan Kaiser
 // https://github.com/skbotoc1-web/tetris
-// main.js
+
 (function() {
     'use strict';
 
-    // Constants
-    const CANVAS_WIDTH = 300;
-    const CANVAS_HEIGHT = 600;
-    const NEXT_CANVAS_SIZE = 200;
-    const BLOCK_SIZE = 30;
-    const COLS = CANVAS_WIDTH / BLOCK_SIZE;
-    const ROWS = CANVAS_HEIGHT / BLOCK_SIZE;
-    const FPS = 60;
-    const TICK_RATE_BASE = 1000; // ms per drop at level 1
-
-    // Colors
-    const COLORS = {
-        I: '#00f0f0',
-        O: '#f0f000',
-        T: '#a000f0',
-        S: '#00f000',
-        Z: '#f00000',
-        J: '#0000f0',
-        L: '#f0a000',
-        Empty: '#1a1a2e',
-        Ghost: 'rgba(255, 255, 255, 0.2)'
-    };
-
-    // DOM Elements
-    const canvas = document.getElementById('tetris-canvas');
-    const ctx = canvas.getContext('2d');
-    const nextCanvas = document.getElementById('next-canvas');
-    const nextCtx = nextCanvas.getContext('2d');
-    const scoreEl = document.getElementById('score');
-    const levelEl = document.getElementById('level');
-    const linesEl = document.getElementById('lines');
-    const gameOverScreen = document.getElementById('gameover-screen');
-    const btnStart = document.getElementById('btn-start');
-    const btnPause = document.getElementById('btn-pause');
-    const btnRestart = document.getElementById('btn-restart');
+    // ── DOM refs ──────────────────────────────────────────────────────────────
+    const canvas      = document.getElementById('tetris-canvas');
+    const ctx         = canvas.getContext('2d');
+    const nextCanvas  = document.getElementById('next-canvas');
+    const nextCtx     = nextCanvas.getContext('2d');
+    const scoreEl     = document.getElementById('score');
+    const levelEl     = document.getElementById('level');
+    const linesEl     = document.getElementById('lines');
+    const gameOverEl  = document.getElementById('gameover-screen');
+    const btnStart    = document.getElementById('btn-start');
+    const btnPause    = document.getElementById('btn-pause');
+    const btnRestart  = document.getElementById('btn-restart');
     const levelSelect = document.getElementById('level-select');
 
-    // Resize canvases
-    canvas.width = CANVAS_WIDTH;
-    canvas.height = CANVAS_HEIGHT;
-    nextCanvas.width = NEXT_CANVAS_SIZE;
-    nextCanvas.height = NEXT_CANVAS_SIZE;
+    // ── Constants ─────────────────────────────────────────────────────────────
+    const COLS       = 10;
+    const ROWS       = 20;
+    const BLOCK      = 30;
+    const COLORS     = {
+        Empty: '#1a1a2e',
+        Ghost: 'rgba(255,255,255,0.15)',
+        '#00f0f0': '#00f0f0', // I
+        '#f0f000': '#f0f000', // O
+        '#a000f0': '#a000f0', // T
+        '#00f000': '#00f000', // S
+        '#f00000': '#f00000', // Z
+        '#0000f0': '#0000f0', // J
+        '#f0a000': '#f0a000', // L
+    };
 
-    // State
-    let gameRunning = false;
-    let paused = false;
-    let lastTime = 0;
-    let dropCounter = 0;
-    let dropInterval = TICK_RATE_BASE;
-    let animationId = null;
+    // Level drop speeds in ms
+    const SPEEDS = [800,700,600,500,400,300,250,200,150,100];
 
-    // Engine Instances (Assumed global or module-loaded)
-    // If using modules, this would be: import TetrisEngine from './tetris-engine.js';
-    // Assuming global classes based on prompt description.
-    let gameEngine;
-    let soundEngine;
+    // ── State ─────────────────────────────────────────────────────────────────
+    let engine       = null;
+    let sound        = null;
+    let running      = false;
+    let paused       = false;
+    let rafId        = null;
+    let dropCounter  = 0;
+    let lastTime     = 0;
+    let dropInterval = 800;
 
-    // High Score Management
-    const HIGH_SCORES_KEY = 'tetris_high_scores';
-    
-    function getHighScores() {
-        const stored = localStorage.getItem(HIGH_SCORES_KEY);
-        return stored ? JSON.parse(stored) : [];
+    // ── Rendering ─────────────────────────────────────────────────────────────
+    function drawBlock(ctx, x, y, color, alpha) {
+        if (alpha !== undefined) ctx.globalAlpha = alpha;
+        ctx.fillStyle = color;
+        ctx.fillRect(x * BLOCK, y * BLOCK, BLOCK - 1, BLOCK - 1);
+        // Bevel
+        ctx.fillStyle = 'rgba(255,255,255,0.25)';
+        ctx.fillRect(x * BLOCK, y * BLOCK, BLOCK - 1, 3);
+        ctx.fillRect(x * BLOCK, y * BLOCK, 3, BLOCK - 1);
+        ctx.fillStyle = 'rgba(0,0,0,0.25)';
+        ctx.fillRect(x * BLOCK + BLOCK - 4, y * BLOCK, 4, BLOCK - 1);
+        ctx.fillRect(x * BLOCK, y * BLOCK + BLOCK - 4, BLOCK - 1, 4);
+        if (alpha !== undefined) ctx.globalAlpha = 1;
     }
 
-    function saveHighScore(score) {
-        const scores = getHighScores();
-        scores.push({ score: score, date: new Date().toISOString() });
-        scores.sort((a, b) => b.score - a.score);
-        const top5 = scores.slice(0, 5);
-        localStorage.setItem(HIGH_SCORES_KEY, JSON.stringify(top5));
-        return top5;
+    function getGhostY(board, player) {
+        let ghostY = player.pos.y;
+        while (true) {
+            ghostY++;
+            // Check collision at ghostY
+            let hit = false;
+            for (let r = 0; r < player.matrix.length; r++) {
+                for (let c = 0; c < player.matrix[r].length; c++) {
+                    if (!player.matrix[r][c]) continue;
+                    const ny = ghostY + r;
+                    const nx = player.pos.x + c;
+                    if (ny >= ROWS || nx < 0 || nx >= COLS || (board[ny] && board[ny][nx] !== 0)) {
+                        hit = true; break;
+                    }
+                }
+                if (hit) break;
+            }
+            if (hit) { ghostY--; break; }
+        }
+        return ghostY;
     }
 
-    function renderNextPiece(piece) {
-        if (!piece) {
-            nextCtx.fillStyle = COLORS.Empty;
-            nextCtx.fillRect(0, 0, nextCanvas.width, nextCanvas.height);
-            return;
+    function render() {
+        if (!engine) return;
+
+        const state = engine.getGameState();
+        const board = state.board;
+        const player = engine.player;
+
+        // Clear
+        ctx.fillStyle = COLORS.Empty;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        // Draw grid lines (subtle)
+        ctx.strokeStyle = 'rgba(255,255,255,0.03)';
+        ctx.lineWidth = 0.5;
+        for (let r = 0; r < ROWS; r++) {
+            for (let c = 0; c < COLS; c++) {
+                ctx.strokeRect(c * BLOCK, r * BLOCK, BLOCK, BLOCK);
+            }
         }
 
-        // Clear next canvas
-        nextCtx.fillStyle = COLORS.Empty;
-        nextCtx.fillRect(0, 0, nextCanvas.width, nextCanvas.height);
-
-        const blockSize = 25; // Slightly smaller for preview
-        const offsetX = (nextCanvas.width - (piece.matrix[0].length * blockSize)) / 2;
-        const offsetY = (nextCanvas.height - (piece.matrix.length * blockSize)) / 2;
-
-        piece.matrix.forEach((row, y) => {
-            row.forEach((value, x) => {
-                if (value !== 0) {
-                    nextCtx.fillStyle = piece.color;
-                    nextCtx.fillRect(
-                        offsetX + x * blockSize,
-                        offsetY + y * blockSize,
-                        blockSize - 1,
-                        blockSize - 1
-                    );
-                }
-            });
-        });
-    }
-
-    function drawBlock(x, y, color) {
-        ctx.fillStyle = color;
-        ctx.fillRect(x * BLOCK_SIZE, y * BLOCK_SIZE, BLOCK_SIZE - 1, BLOCK_SIZE - 1);
-        
-        // Add a subtle bevel effect
-        ctx.fillStyle = 'rgba(255,255,255,0.3)';
-        ctx.fillRect(x * BLOCK_SIZE, y * BLOCK_SIZE, BLOCK_SIZE - 1, 4);
-        ctx.fillRect(x * BLOCK_SIZE, y * BLOCK_SIZE, 4, BLOCK_SIZE - 1);
-        ctx.fillStyle = 'rgba(0,0,0,0.3)';
-        ctx.fillRect(x * BLOCK_SIZE + BLOCK_SIZE - 5, y * BLOCK_SIZE, 5, BLOCK_SIZE - 1);
-        ctx.fillRect(x * BLOCK_SIZE, y * BLOCK_SIZE + BLOCK_SIZE - 5, BLOCK_SIZE - 1, 5);
-    }
-
-    function drawBoard(board) {
-        // Fill background
-        ctx.fillStyle = COLORS.Empty;
-        ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
-
         // Draw placed blocks
-        for (let y = 0; y < board.length; y++) {
-            for (let x = 0; x < board[y].length; x++) {
-                const value = board[y][x];
-                if (value !== 0) {
-                    drawBlock(x, y, value);
+        for (let r = 0; r < board.length; r++) {
+            for (let c = 0; c < board[r].length; c++) {
+                const val = board[r][c];
+                if (val && val !== 0) {
+                    drawBlock(ctx, c, r, val);
                 }
             }
         }
-    }
 
-    function drawActivePiece(piece, ghostY = null) {
-        if (!piece) return;
-
-        // Draw Ghost Piece
-        if (ghostY !== null) {
-            piece.matrix.forEach((row, y) => {
-                row.forEach((value, x) => {
-                    if (value !== 0) {
+        // Draw ghost piece
+        if (player && player.matrix && running && !paused) {
+            const ghostY = getGhostY(board, player);
+            player.matrix.forEach((row, r) => {
+                row.forEach((val, c) => {
+                    if (val !== 0) {
                         ctx.fillStyle = COLORS.Ghost;
                         ctx.fillRect(
-                            (piece.pos.x + x) * BLOCK_SIZE,
-                            (ghostY + y) * BLOCK_SIZE,
-                            BLOCK_SIZE - 1,
-                            BLOCK_SIZE - 1
+                            (player.pos.x + c) * BLOCK,
+                            (ghostY + r) * BLOCK,
+                            BLOCK - 1, BLOCK - 1
                         );
                     }
                 });
             });
         }
 
-        // Draw Active Piece
-        piece.matrix.forEach((row, y) => {
-            row.forEach((value, x) => {
-                if (value !== 0) {
-                    drawBlock(piece.pos.x + x, piece.pos.y + y, piece.color);
-                }
+        // Draw active piece
+        if (player && player.matrix) {
+            player.matrix.forEach((row, r) => {
+                row.forEach((val, c) => {
+                    if (val !== 0) {
+                        drawBlock(ctx, player.pos.x + c, player.pos.y + r, player.color || '#ffffff');
+                    }
+                });
             });
-        });
-    }
-
-    function updateUI() {
-        if (!gameEngine) return;
-        
-        scoreEl.textContent = gameEngine.score;
-        levelEl.textContent = gameEngine.level;
-        linesEl.textContent = gameEngine.lines;
-        
-        if (gameEngine.nextPiece) {
-            renderNextPiece(gameEngine.nextPiece);
-        }
-    }
-
-    function gameLoop(time = 0) {
-        if (!gameRunning || paused) {
-            animationId = requestAnimationFrame(gameLoop);
-            return;
         }
 
-        const deltaTime = time - lastTime;
-        lastTime = time;
+        // Draw next piece
+        if (engine.nextPiece && engine.nextPiece.matrix) {
+            nextCtx.fillStyle = COLORS.Empty;
+            nextCtx.fillRect(0, 0, nextCanvas.width, nextCanvas.height);
+            const np = engine.nextPiece;
+            const bSize = 20;
+            const offX = Math.floor((nextCanvas.width  - np.matrix[0].length * bSize) / 2);
+            const offY = Math.floor((nextCanvas.height - np.matrix.length    * bSize) / 2);
+            np.matrix.forEach((row, r) => {
+                row.forEach((val, c) => {
+                    if (val !== 0) {
+                        nextCtx.fillStyle = np.color || '#ffffff';
+                        nextCtx.fillRect(offX + c*bSize, offY + r*bSize, bSize-1, bSize-1);
+                    }
+                });
+            });
+        }
 
-        dropCounter += deltaTime;
+        // Update HUD
+        scoreEl.textContent = state.score;
+        levelEl.textContent = state.level;
+        linesEl.textContent = state.lines;
+    }
 
-        if (dropCounter > dropInterval) {
-            if (gameEngine.update()) {
-                // Game Over
-                gameOver();
-                return; 
+    // ── Game Loop ─────────────────────────────────────────────────────────────
+    function loop(time = 0) {
+        if (!running || !engine) { rafId = requestAnimationFrame(loop); return; }
+
+        if (!paused) {
+            const dt = time - lastTime;
+            lastTime = time;
+            dropCounter += dt;
+
+            if (dropCounter >= dropInterval) {
+                dropCounter = 0;
+                // Manual drop
+                engine.playerDrop();
+                const state = engine.getGameState();
+                if (state.gameOver) { showGameOver(); return; }
+                // Update speed based on level
+                dropInterval = SPEEDS[Math.min(state.level - 1, SPEEDS.length - 1)];
             }
-            dropCounter = 0;
         }
 
-        // Render
-        drawBoard(gameEngine.board);
-        
-        // Calculate ghost position
-        let ghostY = null;
-        if (gameEngine.player) {
-            ghostY = gameEngine.getGhostPosition();
-            drawActivePiece(gameEngine.player, ghostY);
-        }
-
-        updateUI();
-
-        animationId = requestAnimationFrame(gameLoop);
+        render();
+        rafId = requestAnimationFrame(loop);
     }
 
+    // ── Game Control ──────────────────────────────────────────────────────────
     function startGame() {
-        // Stop existing loop
-        if (animationId) cancelAnimationFrame(animationId);
-        
-        const startingLevel = parseInt(levelSelect.value) || 1;
-        
-        // Initialize Engine
         if (typeof TetrisEngine === 'undefined') {
-            alert('TetrisEngine class not found. Ensure tetris-engine.js is loaded.');
+            alert('TetrisEngine not loaded.');
             return;
         }
-        gameEngine = new TetrisEngine('tetris-canvas', function(state) {
-            if (state && state.gameOver) { showGameOver(state.score); }
-        });
-        gameEngine.setLevel(startingLevel);
 
-        // Calculate drop interval based on level
-        dropInterval = Math.max(100, TICK_RATE_BASE - ((startingLevel - 1) * 100));
+        cancelAnimationFrame(rafId);
+        const startLevel = parseInt(levelSelect.value) || 1;
+        dropInterval = SPEEDS[Math.min(startLevel - 1, SPEEDS.length - 1)];
 
-        // Initialize Sound
-        if (typeof TetrisSoundEngine !== 'undefined') {
-            soundEngine = new TetrisSoundEngine();
-            // Bind engine events to sounds if the engine has an event emitter
-            // Assuming simple method calls or callbacks, otherwise we poll or use specific hooks.
-            // For this implementation, we assume the engine exposes events or we wrap methods.
-            // If the engine is simple, we might need to hook into the step function.
+        // Create engine — pass canvas id + state-change callback
+        engine = new TetrisEngine('tetris-canvas', function(state) {});
+        engine.setLevel(startLevel);
+
+        // Init sound
+        if (typeof TetrisSound !== 'undefined') {
+            sound = TetrisSound;
         }
 
-        gameRunning = true;
-        paused = false;
-        gameOverScreen.style.display = 'none';
-        btnStart.disabled = true;
-        levelSelect.disabled = true;
-        btnPause.disabled = false;
-        
-        lastTime = performance.now();
+        gameOverEl.classList.add('hidden');
+        running = true;
+        paused  = false;
         dropCounter = 0;
-        
-        if (soundEngine) soundEngine.play('start');
-        
-        animationId = requestAnimationFrame(gameLoop);
+        lastTime = 0;
+
+        btnPause.disabled = false;
+        btnStart.textContent = 'Restart';
+        levelSelect.disabled = true;
+
+        rafId = requestAnimationFrame(loop);
     }
 
     function pauseGame() {
-        if (!gameRunning) return;
+        if (!running) return;
         paused = !paused;
-        btnPause.textContent = paused ? 'Resume' : 'Pause';
-        if (paused) {
-            if (soundEngine) soundEngine.play('pause');
-        } else {
+        if (!paused) {
             lastTime = performance.now();
-            if (soundEngine) soundEngine.play('resume');
         }
-    }
-
-    function gameOver() {
-        gameRunning = false;
-        if (animationId) cancelAnimationFrame(animationId);
-        
-        const finalScore = gameEngine.score;
-        const top5 = saveHighScore(finalScore);
-        
-        if (soundEngine) soundEngine.play('game_over');
-        
-        gameOverScreen.innerHTML = `
-            <h2>Game Over</h2>
-            <p>Score: ${finalScore}</p>
-            <p>Level: ${gameEngine.level}</p>
-            <p>Lines: ${gameEngine.lines}</p>
-        `;
-        gameOverScreen.style.display = 'flex';
-        
-        btnStart.disabled = false;
-        levelSelect.disabled = false;
-        btnPause.disabled = true;
-        btnPause.textContent = 'Pause';
+        btnPause.textContent = paused ? 'Resume' : 'Pause';
     }
 
     function restartGame() {
-        gameOverScreen.style.display = 'none';
         startGame();
     }
 
-    // Input Handling
-    function handleInput(action) {
-        if (!gameRunning || paused) return;
+    function showGameOver() {
+        running = false;
+        cancelAnimationFrame(rafId);
 
-        if (soundEngine) {
-            switch(action) {
-                case 'move': soundEngine.play('move'); break;
-                case 'rotate': soundEngine.play('rotate'); break;
-                case 'drop': soundEngine.play('drop'); break;
-            }
-        }
+        const state = engine ? engine.getGameState() : { score: 0 };
+        gameOverEl.classList.remove('hidden');
+        gameOverEl.innerHTML = `
+            <div class="gameover-text">GAME OVER</div>
+            <div class="final-score">Score: <strong>${state.score}</strong></div>
+            <button class="btn-start" onclick="document.getElementById('btn-start').click()">Play Again</button>
+        `;
+        if (sound) sound.playSfx('gameover');
 
-        switch(action) {
-            case 'left':
-                gameEngine.playerMove(-1);
-                break;
-            case 'right':
-                gameEngine.playerMove(1);
-                break;
-            case 'down':
-                gameEngine.playerMove(0); // Soft drop
-                break;
-            case 'rotate':
-                gameEngine.playerRotate();
-                break;
-            case 'hard_drop':
-                gameEngine.playerHardDrop();
-                break;
-        }
+        // Save high score
+        saveHighScore(state.score);
+
+        btnPause.disabled = true;
+        btnStart.textContent = 'Start';
+        levelSelect.disabled = false;
     }
 
-    // Keyboard Events
-    document.addEventListener('keydown', (e) => {
-        if (!gameRunning && e.key.toLowerCase() === 'enter') {
-            startGame();
-            return;
-        }
-
-        switch(e.key) {
-            case 'ArrowLeft':
-                e.preventDefault();
-                handleInput('left');
-                break;
-            case 'ArrowRight':
-                e.preventDefault();
-                handleInput('right');
-                break;
-            case 'ArrowDown':
-                e.preventDefault();
-                handleInput('down');
-                break;
-            case 'ArrowUp':
-                e.preventDefault();
-                handleInput('rotate');
-                break;
-            case ' ':
-                e.preventDefault();
-                handleInput('hard_drop');
-                break;
-            case 'p':
-            case 'P':
-                pauseGame();
-                break;
+    // ── Input ─────────────────────────────────────────────────────────────────
+    document.addEventListener('keydown', function(e) {
+        if (!running || paused || !engine) return;
+        switch (e.code) {
+            case 'ArrowLeft':  case 'KeyA': engine.playerMove(-1); e.preventDefault(); break;
+            case 'ArrowRight': case 'KeyD': engine.playerMove(1);  e.preventDefault(); break;
+            case 'ArrowDown':  case 'KeyS': engine.playerDrop();   dropCounter = 0; e.preventDefault(); break;
+            case 'ArrowUp':    case 'KeyW': engine.playerRotate(1); e.preventDefault(); break;
+            case 'Space':  engine.playerHardDrop(); dropCounter = 0; e.preventDefault(); break;
+            case 'KeyP':   pauseGame(); break;
         }
     });
 
-    // Touch Events
-    let touchStartX = 0;
-    let touchStartY = 0;
-    let touchStartTime = 0;
-    let lastMoveTime = 0;
-    const SWIPE_THRESHOLD = 30;
-    const TAP_DELAY = 200;
-
-    canvas.addEventListener('touchstart', (e) => {
-        if (!gameRunning || paused) return;
+    // Touch support
+    let touchStartX = 0, touchStartY = 0;
+    canvas.addEventListener('touchstart', e => {
+        touchStartX = e.touches[0].clientX;
+        touchStartY = e.touches[0].clientY;
         e.preventDefault();
-        const touch = e.touches[0];
-        touchStartX = touch.clientX;
-        touchStartY = touch.clientY;
-        touchStartTime = Date.now();
-        lastMoveTime = 0;
     }, { passive: false });
-
-    canvas.addEventListener('touchend', (e) => {
-        if (!gameRunning || paused) return;
-        e.preventDefault();
-        
-        const touch = e.changedTouches[0];
-        const touchEndX = touch.clientX;
-        const touchEndY = touch.clientY;
-        const duration = Date.now() - touchStartTime;
-        
-        const deltaX = touchEndX - touchStartX;
-        const deltaY = touchEndY - touchStartY;
-        const absX = Math.abs(deltaX);
-        const absY = Math.abs(deltaY);
-
-        if (duration < TAP_DELAY && absX < 10 && absY < 10) {
-            // Tap
-            handleInput('rotate');
-        } else if (absX > absY && absX > SWIPE_THRESHOLD) {
-            // Horizontal Swipe
-            if (deltaX > 0) handleInput('right');
-            else handleInput('left');
-        } else if (absY > absX && absY > SWIPE_THRESHOLD) {
-            // Vertical Swipe
-            if (deltaY > 0) {
-                // Down swipe -> Hard drop or soft drop? 
-                // Prompt says "down swipe". Usually down is soft drop, but hard drop is space.
-                // Let's make down swipe soft drop repeated or hard drop.
-                // Standard Tetris on mobile often maps swipe down to hard drop if fast, or soft drop.
-                // Let's do hard drop for distinct swipe down.
-                handleInput('hard_drop');
-            }
+    canvas.addEventListener('touchend', e => {
+        if (!running || paused || !engine) return;
+        const dx = e.changedTouches[0].clientX - touchStartX;
+        const dy = e.changedTouches[0].clientY - touchStartY;
+        const absDx = Math.abs(dx), absDy = Math.abs(dy);
+        if (absDx < 10 && absDy < 10) { engine.playerRotate(1); return; }
+        if (absDx > absDy) {
+            engine.playerMove(dx > 0 ? 1 : -1);
+        } else if (dy > 0) {
+            engine.playerHardDrop();
         }
+        e.preventDefault();
     }, { passive: false });
 
-    // Continuous movement for hold down touch?
-    // For simplicity in this script, we stick to tap/swipe. 
-    // If we wanted hold, we'd need touchmove.
+    // ── High Score ────────────────────────────────────────────────────────────
+    function saveHighScore(score) {
+        try {
+            const scores = JSON.parse(localStorage.getItem('tetris-scores') || '[]');
+            scores.push({ score, date: new Date().toLocaleDateString() });
+            scores.sort((a,b) => b.score - a.score);
+            localStorage.setItem('tetris-scores', JSON.stringify(scores.slice(0,5)));
+        } catch(e) {}
+    }
 
-    // Button Listeners
+    // ── Buttons ───────────────────────────────────────────────────────────────
     btnStart.addEventListener('click', startGame);
     btnPause.addEventListener('click', pauseGame);
     btnRestart.addEventListener('click', restartGame);
-    
-    // Initial UI Setup
-    levelSelect.innerHTML = '';
+
+    // Populate level select
     for (let i = 1; i <= 10; i++) {
         const opt = document.createElement('option');
         opt.value = i;
-        opt.textContent = `Level ${i}`;
+        opt.textContent = 'Level ' + i;
         levelSelect.appendChild(opt);
     }
     levelSelect.value = '1';
-    levelSelect.disabled = true;
     btnPause.disabled = true;
 
-    // Initial Render (Empty board)
+    // Initial canvas message
     ctx.fillStyle = COLORS.Empty;
     ctx.fillRect(0, 0, canvas.width, canvas.height);
-    ctx.fillStyle = '#ffffff';
-    ctx.font = '20px Arial';
+    ctx.fillStyle = '#4caf50';
+    ctx.font = 'bold 20px Arial';
     ctx.textAlign = 'center';
-    ctx.fillText('Press Start to Play', CANVAS_WIDTH/2, CANVAS_HEIGHT/2);
+    ctx.fillText('Press Start', canvas.width/2, canvas.height/2 - 10);
+    ctx.fillStyle = '#888';
+    ctx.font = '14px Arial';
+    ctx.fillText('to play', canvas.width/2, canvas.height/2 + 15);
 
 })();
