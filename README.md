@@ -1,40 +1,55 @@
-# Tetris Game ⚛️🎮
+# 🎮 Tetris
 
-Ein modernes, responsives Tetris-Spiel gebaut mit Vanilla JavaScript (oder Vite). Spielt sich flüssig im Browser, keine Installation nötig.
+A classic Tetris game playable in any modern browser — built with pure Vanilla JavaScript, HTML5 Canvas, and Web Audio API. No dependencies, no build step.
 
-[![Live Demo](https://img.shields.io/badge/Live-Demo-blue?style=for-the-badge)](https://skbotoc1-web.github.io/tetris/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Live Demo](https://img.shields.io/badge/▶_Play_Now-blue?style=for-the-badge)](https://skbotoc1-web.github.io/tetris/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 ## ✨ Features
 
-- 🧱 **Klassisches Gameplay:** 7 verschiedene Tetrominos, Punktesystem, Level-Steigerung.
-- ⌨️ **Responsive Controls:** Steuerung per Pfeiltasten (Desktop) und Touch-Buttons (Mobile).
-- 🎨 **Modernes UI:** Sauberes Design mit Neumorphismus-Elementen und dunklem Modus.
-- 🚀 **Performance:** Optimiert für 60 FPS mit Canvas-API.
-- 📱 **Responsive:** Passt sich automatisch an verschiedene Bildschirmgrößen an.
+- 🎮 **10 Difficulty Levels** — speed increases each level
+- 🎵 **MIDI-style Sounds** — synthesized via Web Audio API (no audio files needed)
+- 📱 **Responsive** — works on desktop and mobile (touch swipe support)
+- 🏆 **High Scores** — top 5 saved in localStorage
+- 👻 **Ghost Piece** — shows where the tetromino will land
+- ⌨️ **Full Keyboard Support** — Arrow keys, WASD, Space (hard drop), P (pause)
 
-## 🎮 Spielanleitung
+## 🕹️ Controls
 
-| Taste | Aktion |
-| :--- | :--- |
-| ⬅️ / ➡️ | Block bewegen |
-| ⬆️ | Block rotieren |
-| ⬇️ | Block beschleunigen |
-| 🛑 | Spiel pausieren (P-Taste) |
+| Key | Action |
+|---|---|
+| ← → / A D | Move left / right |
+| ↑ / W | Rotate |
+| ↓ / S | Soft drop |
+| Space | Hard drop |
+| P | Pause |
+
+## 🚀 Run Locally
+
+```bash
+# Clone
+git clone https://github.com/skbotoc1-web/tetris.git
+cd tetris
+
+# Open directly (no build needed)
+open index.html
+
+# Or serve locally
+npx serve .
+```
 
 ## 🛠️ Tech Stack
 
-- **Core:** JavaScript (ES6+)
-- **Build Tool:** Vite (für schnelles HMR und optimales Production-Build)
-- **Styling:** CSS3 (Custom Properties & Flexbox/Grid)
-- **CI/CD:** GitHub Actions
+- Vanilla JavaScript (ES6)
+- HTML5 Canvas
+- Web Audio API (synthesized MIDI sounds)
+- CSS3 (dark theme, responsive)
 
-## 🚀 Installation & Entwicklung
+## 📄 License
 
+MIT License — Copyright (c) 2026 Stefan Kaiser
 
-## 🤝 Contribution Guide
+---
 
-Wir freuen uns über Beiträge! Bitte befolge diese Schritte, um Änderungen vorzuschlagen:
-
-1.  **Fork das Repository:** Klicke oben rechts auf den "Fork"-Button, um eine Kopie in dein GitHub-Konto zu erstellen.
-2.  **Clone dein Fork:**
+*Built autonomously by [SKBOT](https://github.com/skbotoc1-web) multi-agent system*
+*Mission: Building an autonomous 24/7 business that creates value for the real world.*
