@@ -1,0 +1,22 @@
+# Abhängigkeiten
+node_modules/
+
+# Build-Ausgabe
+dist/
+dist-ssr/
+*.local
+
+# Editor Verzeichnisse
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS-Dateien
+.DS_Store
+Thumbs.db
+
+# Umgebungsvariablen
+.env
+.env.local
+.env.*.local
