@@ -1,310 +1,195 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Tetris</title>
-    <style>
-        :root {
-            --bg-color: #121212;
-            --panel-bg: #1e1e1e;
-            --text-color: #e0e0e0;
-            --accent-color: #4caf50;
-            --danger-color: #f44336;
-            --border-color: #333;
-            --font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        }
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <title>Tetris</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-        }
+    body {
+      background: #0d0d1a;
+      color: #e0e0e0;
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+    }
 
-        body {
-            background-color: var(--bg-color);
-            color: var(--text-color);
-            font-family: var(--font-family);
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            min-height: 100vh;
-            padding: 20px;
-        }
+    h1 {
+      font-size: 2rem;
+      letter-spacing: 6px;
+      text-transform: uppercase;
+      color: #4caf50;
+      text-shadow: 0 0 20px rgba(76,175,80,0.5);
+      margin-bottom: 16px;
+    }
 
-        .game-container {
-            max-width: 800px;
-            width: 100%;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 20px;
-        }
+    .game-wrap {
+      display: flex;
+      gap: 16px;
+      align-items: flex-start;
+    }
 
-        header {
-            text-align: center;
-            margin-bottom: 10px;
-        }
+    canvas#tetris-canvas {
+      display: block;
+      border: 2px solid #222;
+      box-shadow: 0 0 30px rgba(76,175,80,0.15);
+      background: #0d0d1a;
+    }
 
-        h1 {
-            font-size: 2.5rem;
-            text-transform: uppercase;
-            letter-spacing: 3px;
-            color: var(--accent-color);
-            text-shadow: 0 0 10px rgba(76, 175, 80, 0.5);
-        }
+    .panel {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      min-width: 140px;
+    }
 
-        .main-content {
-            display: flex;
-            flex-wrap: wrap;
-            justify-content: center;
-            gap: 20px;
-            width: 100%;
-        }
+    .box {
+      background: #14142a;
+      border: 1px solid #222;
+      border-radius: 8px;
+      padding: 12px;
+    }
 
-        .canvas-wrapper {
-            position: relative;
-            border: 2px solid var(--border-color);
-            box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
-        }
+    .box label {
+      display: block;
+      font-size: 0.7rem;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: #555;
+      margin-bottom: 4px;
+    }
 
-        canvas {
-            display: block;
-            background-color: #000;
-        }
+    .box .val {
+      font-size: 1.6rem;
+      font-weight: 700;
+      color: #fff;
+    }
 
-        .side-panel {
-            display: flex;
-            flex-direction: column;
-            gap: 15px;
-            min-width: 180px;
-        }
+    .next-wrap {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 80px;
+    }
 
-        .panel-section {
-            background-color: var(--panel-bg);
-            padding: 15px;
-            border-radius: 8px;
-            border: 1px solid var(--border-color);
-        }
+    canvas#next-canvas {
+      background: #0d0d1a;
+      border-radius: 4px;
+    }
 
-        .panel-section h3 {
-            font-size: 0.9rem;
-            color: #888;
-            text-transform: uppercase;
-            margin-bottom: 5px;
-        }
+    .controls {
+      font-size: 0.75rem;
+      color: #444;
+      line-height: 1.8;
+    }
+    .controls kbd {
+      background: #1e1e3a;
+      border: 1px solid #333;
+      border-radius: 3px;
+      padding: 1px 4px;
+      font-size: 0.72rem;
+      color: #aaa;
+    }
 
-        .stat-value {
-            font-size: 1.5rem;
-            font-weight: bold;
-        }
+    .btns { display: flex; flex-direction: column; gap: 8px; }
 
-        .next-piece-wrapper {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100px;
-        }
+    button {
+      padding: 10px;
+      border: none;
+      border-radius: 6px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      transition: filter 0.15s, transform 0.1s;
+    }
+    button:hover  { filter: brightness(1.15); }
+    button:active { transform: translateY(1px); }
+    button:disabled { opacity: 0.35; cursor: default; }
 
-        .controls-section {
-            font-size: 0.85rem;
-            line-height: 1.6;
-            color: #aaa;
-        }
+    #btn-start   { background: #4caf50; color: #000; }
+    #btn-pause   { background: #ff9800; color: #000; }
+    #btn-restart { background: #f44336; color: #fff; }
+    #btn-mute    { background: #1e1e3a; color: #aaa; border: 1px solid #333; }
 
-        .controls-section kbd {
-            background-color: #333;
-            border-radius: 3px;
-            border: 1px solid #555;
-            box-shadow: 0 1px 1px rgba(0,0,0,0.2);
-            color: #fff;
-            display: inline-block;
-            font-size: 0.85em;
-            font-weight: 700;
-            line-height: 1;
-            padding: 2px 4px;
-            white-space: nowrap;
-        }
+    select {
+      width: 100%;
+      padding: 8px;
+      background: #1e1e3a;
+      color: #fff;
+      border: 1px solid #333;
+      border-radius: 6px;
+      font-size: 0.9rem;
+    }
 
-        .button-group {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 10px;
-        }
-
-        button {
-            flex: 1;
-            padding: 12px;
-            border: none;
-            border-radius: 4px;
-            font-size: 1rem;
-            font-weight: bold;
-            cursor: pointer;
-            transition: background-color 0.2s, transform 0.1s;
-            text-transform: uppercase;
-        }
-
-        button:active {
-            transform: translateY(1px);
-        }
-
-        .btn-start { background-color: var(--accent-color); color: white; }
-        .btn-start:hover { background-color: #43a047; }
-
-        .btn-pause { background-color: #ff9800; color: white; }
-        .btn-pause:hover { background-color: #fb8c00; }
-
-        .btn-restart { background-color: var(--danger-color); color: white; }
-        .btn-restart:hover { background-color: #e53935; }
-
-        .level-select {
-            width: 100%;
-            padding: 8px;
-            background-color: #333;
-            color: white;
-            border: 1px solid #555;
-            border-radius: 4px;
-            margin-top: 5px;
-        }
-
-        #gameover-screen {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0, 0, 0, 0.85);
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            z-index: 10;
-        }
-
-        .hidden {
-            display: none !important;
-        }
-
-        .gameover-text {
-            font-size: 3rem;
-            color: var(--danger-color);
-            margin-bottom: 20px;
-            text-shadow: 0 0 10px rgba(244, 67, 54, 0.5);
-        }
-
-        .final-score {
-            font-size: 1.5rem;
-            margin-bottom: 30px;
-        }
-
-        @media (max-width: 600px) {
-            .main-content {
-                flex-direction: column;
-                align-items: center;
-            }
-            
-            .side-panel {
-                width: 100%;
-                flex-direction: row;
-                flex-wrap: wrap;
-            }
-
-            .panel-section {
-                flex: 1;
-                min-width: 45%;
-            }
-
-            .controls-section {
-                display: none;
-            }
-        }
-    </style>
+    @media (max-width: 520px) {
+      h1 { font-size: 1.4rem; }
+      .game-wrap { flex-direction: column; align-items: center; }
+      .panel { flex-direction: row; flex-wrap: wrap; min-width: unset; width: 100%; }
+      .box { flex: 1 1 40%; }
+      .controls { display: none; }
+    }
+  </style>
 </head>
 <body>
+  <h1>Tetris</h1>
+  <div class="game-wrap">
+    <canvas id="tetris-canvas"></canvas>
 
-    <div class="game-container">
-        <header>
-            <h1>Tetris</h1>
-        </header>
+    <div class="panel">
+      <div class="box">
+        <label>Score</label>
+        <div class="val" id="score">0</div>
+      </div>
+      <div class="box">
+        <label>Level</label>
+        <div class="val" id="level">1</div>
+      </div>
+      <div class="box">
+        <label>Lines</label>
+        <div class="val" id="lines">0</div>
+      </div>
+      <div class="box">
+        <label>Best</label>
+        <div class="val" id="hiscore">0</div>
+      </div>
 
-        <div class="main-content">
-            <!-- Game Canvas -->
-            <div class="canvas-wrapper">
-                <canvas id="tetris-canvas" width="300" height="600"></canvas>
-                
-                <!-- Game Over Overlay -->
-                <div id="gameover-screen" class="hidden">
-                    <div class="gameover-text">GAME OVER</div>
-                    <div class="final-score">Score: <span id="final-score-val">0</span></div>
-                    <button class="btn-start" id="btn-restart" class="btn-start">Play Again</button>
-                </div>
-            </div>
-
-            <!-- Side Panel -->
-            <div class="side-panel">
-                <!-- Stats -->
-                <div class="panel-section">
-                    <h3>Score</h3>
-                    <div class="stat-value" id="score">0</div>
-                </div>
-
-                <div class="panel-section">
-                    <h3>Level</h3>
-                    <div class="stat-value" id="level">1</div>
-                </div>
-
-                <div class="panel-section">
-                    <h3>Lines</h3>
-                    <div class="stat-value" id="lines">0</div>
-                </div>
-
-                <!-- Next Piece -->
-                <div class="panel-section">
-                    <h3>Next</h3>
-                    <div class="next-piece-wrapper">
-                        <canvas id="next-canvas" width="100" height="80"></canvas>
-                    </div>
-                </div>
-
-                <!-- Controls -->
-                <div class="panel-section controls-section">
-                    <h3>Controls</h3>
-                    <div><kbd>&larr;</kbd> <kbd>&rarr;</kbd> Move</div>
-                    <div><kbd>&uarr;</kbd> Rotate</div>
-                    <div><kbd>&darr;</kbd> Soft Drop</div>
-                    <div><kbd>Space</kbd> Hard Drop</div>
-                    <div><kbd>P</kbd> Pause</div>
-                </div>
-
-                <!-- Settings & Actions -->
-                <div class="panel-section">
-                    <h3>Start Level</h3>
-                    <select id="level-select" class="level-select">
-                        <option value="1">Level 1</option>
-                        <option value="2">Level 2</option>
-                        <option value="3">Level 3</option>
-                        <option value="4">Level 4</option>
-                        <option value="5">Level 5</option>
-                        <option value="6">Level 6</option>
-                        <option value="7">Level 7</option>
-                        <option value="8">Level 8</option>
-                <option value="9">Level 9</option>
-                        <option value="10">Level 10</option>
-                    </select>
-                    <div class="button-group" style="margin-top: 15px;">
-                        <button class="btn-start" id="btn-start">Start</button>
-                        <button class="btn-pause" id="btn-pause">Pause</button>
-                        <button class="btn-restart" id="btn-restart">Restart</button>
-                    </div>
-                </div>
-            </div>
+      <div class="box">
+        <label>Next</label>
+        <div class="next-wrap">
+          <canvas id="next-canvas" width="100" height="80"></canvas>
         </div>
-    </div>
+      </div>
 
-    <!-- Script Tags loading external modules -->
-    <script src="tetris-engine.js"></script>
-    <script src="tetris-sound.js"></script>
-    <script src="main.js" defer></script>
+      <div class="box">
+        <label>Start Level</label>
+        <select id="level-select"></select>
+      </div>
+
+      <div class="btns">
+        <button id="btn-start">Start</button>
+        <button id="btn-pause">Pause</button>
+        <button id="btn-restart">Restart</button>
+        <button id="btn-mute">🔊</button>
+      </div>
+
+      <div class="box controls">
+        <label>Controls</label>
+        <div><kbd>← →</kbd> Move</div>
+        <div><kbd>↑</kbd> Rotate</div>
+        <div><kbd>↓</kbd> Soft drop</div>
+        <div><kbd>Space</kbd> Hard drop</div>
+        <div><kbd>P</kbd> Pause &nbsp; <kbd>M</kbd> Mute</div>
+      </div>
+    </div>
+  </div>
+
+  <script src="tetris.js"></script>
 </body>
 </html>
