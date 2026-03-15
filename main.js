@@ -225,7 +225,10 @@
             alert('TetrisEngine class not found. Ensure tetris-engine.js is loaded.');
             return;
         }
-        gameEngine = new TetrisEngine(startingLevel);
+        gameEngine = new TetrisEngine('tetris-canvas', function(state) {
+            if (state && state.gameOver) { showGameOver(state.score); }
+        });
+        gameEngine.setLevel(startingLevel);
 
         // Calculate drop interval based on level
         dropInterval = Math.max(100, TICK_RATE_BASE - ((startingLevel - 1) * 100));

@@ -165,6 +165,11 @@
             this.requestId = requestAnimationFrame(this.update.bind(this));
         }
 
+
+        setLevel(level) {
+            this.level = Math.max(1, Math.min(10, parseInt(level) || 1));
+        }
+
         reset() {
             this.board = this.createMatrix(COLS, ROWS);
             this.player = {
@@ -452,11 +457,8 @@
     // --- Export / Initialization ---
     
     // Make it available globally or via module system
-    if (typeof module !== 'undefined' && module.exports) {
-        module.exports = { TetrisEngine, SoundEngine };
-    } else {
-        window.TetrisEngine = TetrisEngine;
-        window.SoundEngine = SoundEngine;
-    }
+    // Browser global export
+    window.TetrisEngine = TetrisEngine;
+    window.SoundEngine = SoundEngine;
 
 })();
