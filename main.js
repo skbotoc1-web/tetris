@@ -191,7 +191,7 @@
         dropCounter += deltaTime;
 
         if (dropCounter > dropInterval) {
-            if (gameEngine.step()) {
+            if (gameEngine.update()) {
                 // Game Over
                 gameOver();
                 return; 
@@ -204,9 +204,9 @@
         
         // Calculate ghost position
         let ghostY = null;
-        if (gameEngine.activePiece) {
-            ghostY = gameEngine.getGhostY();
-            drawActivePiece(gameEngine.activePiece, ghostY);
+        if (gameEngine.player) {
+            ghostY = gameEngine.getGhostPosition();
+            drawActivePiece(gameEngine.player, ghostY);
         }
 
         updateUI();
@@ -308,19 +308,19 @@
 
         switch(action) {
             case 'left':
-                gameEngine.move(-1);
+                gameEngine.playerMove(-1);
                 break;
             case 'right':
-                gameEngine.move(1);
+                gameEngine.playerMove(1);
                 break;
             case 'down':
-                gameEngine.move(0); // Soft drop
+                gameEngine.playerMove(0); // Soft drop
                 break;
             case 'rotate':
-                gameEngine.rotate();
+                gameEngine.playerRotate();
                 break;
             case 'hard_drop':
-                gameEngine.hardDrop();
+                gameEngine.playerHardDrop();
                 break;
         }
     }

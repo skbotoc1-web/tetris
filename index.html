@@ -1,4 +1,3 @@
-```html
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -238,7 +237,7 @@
                 <div id="gameover-screen" class="hidden">
                     <div class="gameover-text">GAME OVER</div>
                     <div class="final-score">Score: <span id="final-score-val">0</span></div>
-                    <button class="btn-start" onclick="resetGame()">Play Again</button>
+                    <button class="btn-start" id="btn-restart" class="btn-start">Play Again</button>
                 </div>
             </div>
 
@@ -247,17 +246,17 @@
                 <!-- Stats -->
                 <div class="panel-section">
                     <h3>Score</h3>
-                    <div class="stat-value" id="score-display">0</div>
+                    <div class="stat-value" id="score">0</div>
                 </div>
 
                 <div class="panel-section">
                     <h3>Level</h3>
-                    <div class="stat-value" id="level-display">1</div>
+                    <div class="stat-value" id="level">1</div>
                 </div>
 
                 <div class="panel-section">
                     <h3>Lines</h3>
-                    <div class="stat-value" id="lines-display">0</div>
+                    <div class="stat-value" id="lines">0</div>
                 </div>
 
                 <!-- Next Piece -->
@@ -294,9 +293,9 @@
                         <option value="10">Level 10</option>
                     </select>
                     <div class="button-group" style="margin-top: 15px;">
-                        <button class="btn-start" id="start-btn">Start</button>
-                        <button class="btn-pause" id="pause-btn">Pause</button>
-                        <button class="btn-restart" id="restart-btn">Restart</button>
+                        <button class="btn-start" id="btn-start">Start</button>
+                        <button class="btn-pause" id="btn-pause">Pause</button>
+                        <button class="btn-restart" id="btn-restart">Restart</button>
                     </div>
                 </div>
             </div>
@@ -304,9 +303,8 @@
     </div>
 
     <!-- Script Tags loading external modules -->
-    <script type="module" src="tetris-engine.js"></script>
-    <script type="module" src="tetris-sound.js"></script>
-    <script type="module" src="main.js"></script>
+    <script src="tetris-engine.js"></script>
+    <script src="tetris-sound.js"></script>
+    <script src="main.js" defer></script>
 </body>
 </html>
-```
