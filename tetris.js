@@ -1,10 +1,6 @@
-// ╔═══════════════════════════════════════════════════════════╗
-// ║  TETRIS  —  MIT License © 2026 Stefan Kaiser             ║
-// ║  https://github.com/skbotoc1-web/tetris                  ║
-// ╚═══════════════════════════════════════════════════════════╝
 'use strict';
 
-// ─── Constants ────────────────────────────────────────────────
+// ─── Constants ─────────────────────────────────────────────────
 const COLS  = 10;
 const ROWS  = 20;
 const SZ    = 30;   // block size px
@@ -46,7 +42,7 @@ class Bag {
   }
 }
 
-// ─── Game Logic (pure) ────────────────────────────────────────
+// ─── Game Logic (pure) ────────────────────────────────────────────
 class TetrisGame {
   constructor(startLevel=1) {
     this.board   = Array.from({length:ROWS},()=>new Array(COLS).fill(0));
@@ -59,7 +55,12 @@ class TetrisGame {
     this.next    = this._bag.next();
     this.piece   = null;
     this._stats  = {I:0,O:0,T:0,S:0,Z:0,J:0,L:0};
-    this._clearAnim = []; // rows being cleared (for flash effect)
+    this._clearAnim = [];
+    this._lockDelay = 500;
+    this._lockResets = 0;
+    this._lockMaxResets = 15;
+    this._lockPending = false;
+    this._lockTimer = null;
     this._spawn();
   }
 
@@ -72,6 +73,9 @@ class TetrisGame {
     if (this._hit(this.piece, 0, 0)) {
       this.gameOver = true;
     }
+    this._lockPending = false;
+    if(this._lockTimer) clearTimeout(this._lockTimer);
+    this._lockResets = 0;
   }
 
   _hit(p, dx, dy, mat) {
@@ -86,9 +90,15 @@ class TetrisGame {
     return false;
   }
 
+  commitLock() {
+    if (!this._lockPending) return;
+    this._lockPending = false;
+    if(this._lockTimer) clearTimeout(this._lockTimer);
+    return this._lock();
+  }
+
   _lock() {
     const p = this.piece;
-    // Check if any block is above row 0 → game over condition
     let aboveTop = false;
     p.matrix.forEach((row,r) => row.forEach((v,c) => {
       if (v) {
@@ -99,7 +109,6 @@ class TetrisGame {
     }));
     if (aboveTop) { this.gameOver = true; return {cleared:0, topOut:true}; }
 
-    // Find full rows
     const full = [];
     for (let r=ROWS-1; r>=0; r--)
       if (this.board[r].every(v=>v!==0)) full.push(r);
@@ -124,19 +133,44 @@ class TetrisGame {
     }
   }
 
-  // ── Public API ─────────────────────────────────────────────
-  moveLeft()  { if(!this._hit(this.piece,-1,0)){this.piece.x--;return true;} return false; }
-  moveRight() { if(!this._hit(this.piece, 1,0)){this.piece.x++;return true;} return false; }
+  resetLockTimer() {
+    if (this._lockPending) {
+      if (this._lockTimer) clearTimeout(this._lockTimer);
+      if (this._lockResets < this._lockMaxResets) {
+        this._lockResets++;
+        this._lockTimer = setTimeout(() => {
+          const res = this.commitLock();
+          if (res) return {locked:true, ...res};
+        }, this._lockDelay);
+      } else {
+        const res = this.commitLock();
+        if (res) return {locked:true, ...res};
+      }
+    }
+    return null;
+  }
+
+  moveLeft()  { 
+    if(!this._hit(this.piece,-1,0)){this.piece.x--;return true;} 
+    this.resetLockTimer();
+    return false; 
+  }
+  moveRight() { 
+    if(!this._hit(this.piece, 1,0)){this.piece.x++;return true;} 
+    this.resetLockTimer();
+    return false; 
+  }
 
   rotate(dir=1) {
     const m = dir>0 ? rotateCW(this.piece.matrix) : rotateCW(rotateCW(rotateCW(this.piece.matrix)));
     const kicks = [0,-1,1,-2,2];
     for (const dx of kicks)
-      for (const dy of [0,-1]) // also try kicking up 1
+      for (const dy of [0,-1])
         if (!this._hit(this.piece,dx,dy,m)) {
           this.piece.matrix = m;
           this.piece.x += dx;
           this.piece.y += dy;
+          this.resetLockTimer();
           return true;
         }
     return false;
@@ -144,25 +178,27 @@ class TetrisGame {
 
   softDrop() {
     if (!this._hit(this.piece,0,1)) { this.piece.y++; this.score++; return {moved:true}; }
-    // Piece can't move down — if at spawn position, game over
-    if (this.piece.y <= 1 && this._hit(this.piece, 0, 0)) {
-      this.gameOver = true;
-      return {cleared:0, locked:true};
+    if (!this._lockPending) {
+      this._lockPending = true;
+      this._lockTimer = setTimeout(() => {
+        const res = this.commitLock();
+        if (res) return {locked:true, ...res};
+      }, this._lockDelay);
+      return {moved:false};
     }
-    const result = this._lock();
-    if (!this.gameOver) this._spawn();
-    return {...result, locked:true};
+    return {moved:false};
   }
 
   hardDrop() {
     let dropped = 0;
     while (!this._hit(this.piece,0,1)) { this.piece.y++; dropped++; }
     this.score += dropped * 2;
-    // If piece couldn't move at all and is still at/above spawn → game over
     if (dropped === 0 && this.piece.y <= 1) {
       this.gameOver = true;
       return {cleared:0, locked:true, dropped:0};
     }
+    if(this._lockTimer) clearTimeout(this._lockTimer);
+    this._lockPending = false;
     const result = this._lock();
     if (!this.gameOver) this._spawn();
     return {...result, locked:true, dropped};
@@ -184,7 +220,6 @@ class Sound {
     this.muted = false;
     this._musicTimer = null;
     this._noteIdx = 0;
-    // Korobeiniki (Tetris theme A)
     this._melody = [
       [659,400],[494,200],[523,200],[587,400],[523,200],[494,200],
       [440,400],[440,200],[523,200],[659,400],[587,200],[523,200],
@@ -248,20 +283,17 @@ class Renderer {
     this.nctx= nextCanvas.getContext('2d');
     this.c.width  = COLS*SZ;
     this.c.height = ROWS*SZ;
-    this._flash = 0; // clear animation timer
+    this._flash = 0;
   }
 
   _block(ctx, x, y, color, shadow, alpha=1) {
     const bx=x*SZ, by=y*SZ;
     ctx.globalAlpha = alpha;
-    // Main fill
     ctx.fillStyle = color;
     ctx.fillRect(bx+1, by+1, SZ-2, SZ-2);
-    // Inner glow top-left
     ctx.fillStyle = 'rgba(255,255,255,0.35)';
     ctx.fillRect(bx+2, by+2, SZ-4, 4);
     ctx.fillRect(bx+2, by+2, 4, SZ-4);
-    // Inner shadow bottom-right
     ctx.fillStyle = shadow || 'rgba(0,0,0,0.4)';
     ctx.fillRect(bx+SZ-6, by+2, 4, SZ-4);
     ctx.fillRect(bx+2, by+SZ-6, SZ-4, 4);
@@ -270,22 +302,17 @@ class Renderer {
 
   draw(game, flashRows=[]) {
     const ctx = this.ctx;
-    // Background
     ctx.fillStyle = '#0a0a14';
     ctx.fillRect(0,0,this.c.width,this.c.height);
-
-    // Grid dots
     ctx.fillStyle = 'rgba(255,255,255,0.06)';
     for(let r=0;r<ROWS;r++) for(let c=0;c<COLS;c++)
       ctx.fillRect(c*SZ+SZ/2-1, r*SZ+SZ/2-1, 2, 2);
 
-    // Board
     game.board.forEach((row,r) => {
       const isFlash = flashRows.includes(r);
       row.forEach((color,c) => {
         if (color) {
           if (isFlash) {
-            // White flash for cleared rows
             ctx.globalAlpha = 0.8;
             ctx.fillStyle = '#fff';
             ctx.fillRect(c*SZ+1, r*SZ+1, SZ-2, SZ-2);
@@ -300,33 +327,30 @@ class Renderer {
 
     if (!game.piece || game.gameOver) return;
 
-    // Ghost
+    // Ghost Piece
     const gy = game.ghostY();
+    ctx.globalAlpha = 0.3;
+    ctx.strokeStyle = '#ffffff';
+    ctx.lineWidth = 1;
     game.piece.matrix.forEach((row,r) => row.forEach((v,c) => {
       if (v && gy+r !== game.piece.y+r) {
-        ctx.globalAlpha = 0.18;
+        const bx = (game.piece.x+c)*SZ+1, by = (gy+r)*SZ+1;
+        ctx.strokeRect(bx, by, SZ-2, SZ-2);
         ctx.fillStyle = game.piece.color;
-        ctx.fillRect((game.piece.x+c)*SZ+1, (gy+r)*SZ+1, SZ-2, SZ-2);
-        ctx.strokeStyle = game.piece.color;
-        ctx.lineWidth = 1;
-        ctx.strokeRect((game.piece.x+c)*SZ+1, (gy+r)*SZ+1, SZ-2, SZ-2);
-        ctx.globalAlpha = 1;
+        ctx.fillRect(bx, by, SZ-2, SZ-2);
       }
     }));
+    ctx.globalAlpha = 1;
 
-    // Active piece
     game.piece.matrix.forEach((row,r) => row.forEach((v,c) => {
-      if (v) this._block(ctx, game.piece.x+c, game.piece.y+r,
-        game.piece.color, game.piece.shadow);
+      if (v) this._block(ctx, game.piece.x+c, game.piece.y+r, game.piece.color, game.piece.shadow);
     }));
 
-    // Border accent (level color)
     const levelColors=['#4caf50','#8bc34a','#cddc39','#ffeb3b','#ffc107','#ff9800','#ff5722','#f44336','#e91e63','#9c27b0'];
     ctx.strokeStyle = levelColors[Math.min(game.level-1,9)];
     ctx.lineWidth = 2;
     ctx.strokeRect(1,1,this.c.width-2,this.c.height-2);
 
-    // Next piece
     this._drawNext(game.next);
   }
 
@@ -367,7 +391,6 @@ class Renderer {
     const ctx = this.ctx;
     ctx.fillStyle = '#0a0a14';
     ctx.fillRect(0,0,this.c.width,this.c.height);
-    // Draw random ghost blocks as decoration
     const colors = Object.values(PIECES).map(p=>p.color);
     for(let r=2;r<ROWS;r++) for(let c=0;c<COLS;c++) {
       if(Math.random()<0.3) {
@@ -384,36 +407,30 @@ class Renderer {
 // ─── Controller ───────────────────────────────────────────────
 class TetrisController {
   constructor() {
-    // DOM
     this.$  = id => document.getElementById(id);
     this.canvas   = this.$('tetris-canvas');
     this.renderer = new Renderer(this.canvas, this.$('next-canvas'));
     this.sound    = new Sound();
     this.game     = null;
-
-    // State
-    this.state    = 'idle';  // idle|running|paused|gameover
+    this.state    = 'idle';
     this.rafId    = null;
     this.dropAcc  = 0;
     this.lastTime = 0;
     this.flashRows= [];
     this.flashTimer=null;
-    this.lockDelay= 0;  // lock delay ms
-    this.lockMax  = 500;
+    this._dasState = {};
 
     this._buildUI();
     this.renderer.idle();
   }
 
   _buildUI() {
-    // Level select
     const sel = this.$('level-select');
     for(let i=1;i<=10;i++){
       const o=document.createElement('option');
       o.value=i; o.textContent='Level '+i; sel.appendChild(o);
     }
 
-    // Buttons
     this.$('btn-start').addEventListener('click',   ()=>this.start());
     this.$('btn-pause').addEventListener('click',   ()=>this.togglePause());
     this.$('btn-restart').addEventListener('click', ()=>this.start());
@@ -423,10 +440,49 @@ class TetrisController {
       mb.textContent = m?'🔇':'🔊';
     });
 
-    // Keyboard
-    document.addEventListener('keydown', e=>this._key(e));
+    const handleKey = (code, action, isDown) => {
+      if (isDown) {
+        if (!this._dasState[code]) {
+          this._dasState[code] = true;
+          this._action(action);
+          if (['ArrowLeft','ArrowRight','ArrowDown','KeyA','KeyD','KeyS'].includes(code)) {
+            let first = true;
+            this._dasState[code] = {
+              timer: setTimeout(() => {
+                this._dasState[code].interval = setInterval(() => {
+                  this._action(action);
+                }, 33);
+              }, first ? 167 : 33)
+            };
+          }
+        }
+      } else {
+        if (this._dasState[code]) {
+          if (this._dasState[code].interval) clearInterval(this._dasState[code].interval);
+          if (this._dasState[code].timer) clearTimeout(this._dasState[code].timer);
+          delete this._dasState[code];
+        }
+      }
+    };
 
-    // Touch
+    document.addEventListener('keydown', e=>{
+      if (['ArrowLeft','ArrowRight','ArrowDown','KeyA','KeyD','KeyS','ArrowUp','KeyW','KeyZ','Space','KeyP','Escape','KeyM'].includes(e.code)) e.preventDefault();
+      
+      if (e.code === 'KeyP' || e.code === 'Escape') this._action('pause');
+      else if (e.code === 'KeyM') this._action('mute');
+      else handleKey(e.code, {
+        'ArrowLeft':'left', 'KeyA':'left', 'ArrowRight':'right', 'KeyD':'right',
+        'ArrowDown':'soft', 'KeyS':'soft', 'ArrowUp':'rotate', 'KeyW':'rotate',
+        'KeyZ':'rotate_ccw', 'Space':'hard'
+      }[e.code], true);
+    });
+
+    document.addEventListener('keyup', e=>{
+      if (['ArrowLeft','ArrowRight','ArrowDown','KeyA','KeyD','KeyS'].includes(e.code)) {
+        handleKey(e.code, null, false);
+      }
+    });
+
     let tx=0,ty=0,tTime=0;
     this.canvas.addEventListener('touchstart',e=>{
       tx=e.touches[0].clientX; ty=e.touches[0].clientY; tTime=Date.now();
@@ -472,8 +528,8 @@ class TetrisController {
     switch(a){
       case 'left':       if(g.moveLeft())   this.sound.move(); break;
       case 'right':      if(g.moveRight())  this.sound.move(); break;
-      case 'rotate':     if(g.rotate(1))    this.sound.rotate(); break;
-      case 'rotate_ccw': if(g.rotate(-1))   this.sound.rotate(); break;
+      case 'rotate':     if(g.rotate(1))    { this.sound.rotate(); navigator.vibrate && navigator.vibrate(8); } break;
+      case 'rotate_ccw': if(g.rotate(-1))   { this.sound.rotate(); navigator.vibrate && navigator.vibrate(8); } break;
       case 'soft': {
         const r=g.softDrop();
         if(r.locked) this._onLock(r);
@@ -482,6 +538,7 @@ class TetrisController {
       case 'hard': {
         const r=g.hardDrop();
         this.sound.hardDropSfx(r.dropped||0);
+        navigator.vibrate && navigator.vibrate([10,10,40]);
         this._onLock(r);
         break;
       }
@@ -497,8 +554,8 @@ class TetrisController {
       this.sound.clear(r.cleared);
       if (r.combo > 1) this._showCombo(r.combo);
     }
+    navigator.vibrate && navigator.vibrate(5);
     const prevLevel = this.game.level;
-    // level up sound already handled in TetrisGame
     this._updateHUD();
   }
 
