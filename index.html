@@ -2,173 +2,89 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
   <title>Tetris</title>
   <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    html,body{height:100%;background:#0a0a14;color:#e0e0e0;
+      font-family:'Segoe UI',system-ui,sans-serif;
+      display:flex;flex-direction:column;align-items:center;
+      justify-content:center;min-height:100vh;padding:12px;
+      user-select:none;-webkit-user-select:none}
+    h1{font-size:1.8rem;letter-spacing:8px;text-transform:uppercase;
+      color:#4caf50;text-shadow:0 0 20px rgba(76,175,80,.5);margin-bottom:12px}
 
-    body {
-      background: #0d0d1a;
-      color: #e0e0e0;
-      font-family: 'Segoe UI', system-ui, sans-serif;
-      min-height: 100vh;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      padding: 16px;
-    }
+    .wrap{display:flex;gap:14px;align-items:flex-start}
 
-    h1 {
-      font-size: 2rem;
-      letter-spacing: 6px;
-      text-transform: uppercase;
-      color: #4caf50;
-      text-shadow: 0 0 20px rgba(76,175,80,0.5);
-      margin-bottom: 16px;
-    }
+    /* Canvas */
+    #tetris-canvas{display:block;cursor:default}
 
-    .game-wrap {
-      display: flex;
-      gap: 16px;
-      align-items: flex-start;
-    }
+    /* Side panel */
+    .panel{display:flex;flex-direction:column;gap:10px;width:140px}
 
-    canvas#tetris-canvas {
-      display: block;
-      border: 2px solid #222;
-      box-shadow: 0 0 30px rgba(76,175,80,0.15);
-      background: #0d0d1a;
-    }
+    .box{background:#111122;border:1px solid #1e1e3a;border-radius:8px;padding:10px 12px}
+    .box small{display:block;font-size:.65rem;letter-spacing:2px;text-transform:uppercase;
+      color:#444;margin-bottom:2px}
+    .box .v{font-size:1.5rem;font-weight:700;color:#fff;font-variant-numeric:tabular-nums}
 
-    .panel {
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-      min-width: 140px;
-    }
+    #next-canvas{background:#0a0a14;border-radius:4px;display:block;margin:0 auto}
 
-    .box {
-      background: #14142a;
-      border: 1px solid #222;
-      border-radius: 8px;
-      padding: 12px;
-    }
+    .combo-wrap{height:20px;text-align:center}
+    #combo{font-size:.8rem;font-weight:700;color:#ff9800;
+      opacity:0;transition:opacity .15s;letter-spacing:1px}
 
-    .box label {
-      display: block;
-      font-size: 0.7rem;
-      letter-spacing: 2px;
-      text-transform: uppercase;
-      color: #555;
-      margin-bottom: 4px;
-    }
+    select{width:100%;padding:7px 8px;background:#111122;color:#ddd;
+      border:1px solid #1e1e3a;border-radius:6px;font-size:.85rem}
+    select:disabled{opacity:.4}
 
-    .box .val {
-      font-size: 1.6rem;
-      font-weight: 700;
-      color: #fff;
-    }
+    .btns{display:flex;flex-direction:column;gap:7px}
+    button{padding:9px;border:none;border-radius:6px;font-size:.82rem;
+      font-weight:700;cursor:pointer;text-transform:uppercase;letter-spacing:1px;
+      transition:filter .15s,transform .1s}
+    button:hover:not(:disabled){filter:brightness(1.2)}
+    button:active:not(:disabled){transform:translateY(1px)}
+    button:disabled{opacity:.35;cursor:default}
+    #btn-start  {background:#4caf50;color:#000}
+    #btn-pause  {background:#ff9800;color:#000}
+    #btn-restart{background:#f44336;color:#fff}
+    #btn-mute   {background:#1e1e3a;color:#888;border:1px solid #2a2a4a;font-size:1rem}
 
-    .next-wrap {
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      height: 80px;
-    }
+    .keys{font-size:.72rem;color:#333;line-height:1.9}
+    .keys kbd{background:#111122;border:1px solid #222244;border-radius:3px;
+      padding:1px 4px;color:#666;font-size:.68rem}
 
-    canvas#next-canvas {
-      background: #0d0d1a;
-      border-radius: 4px;
-    }
-
-    .controls {
-      font-size: 0.75rem;
-      color: #444;
-      line-height: 1.8;
-    }
-    .controls kbd {
-      background: #1e1e3a;
-      border: 1px solid #333;
-      border-radius: 3px;
-      padding: 1px 4px;
-      font-size: 0.72rem;
-      color: #aaa;
-    }
-
-    .btns { display: flex; flex-direction: column; gap: 8px; }
-
-    button {
-      padding: 10px;
-      border: none;
-      border-radius: 6px;
-      font-size: 0.9rem;
-      font-weight: 600;
-      cursor: pointer;
-      text-transform: uppercase;
-      letter-spacing: 1px;
-      transition: filter 0.15s, transform 0.1s;
-    }
-    button:hover  { filter: brightness(1.15); }
-    button:active { transform: translateY(1px); }
-    button:disabled { opacity: 0.35; cursor: default; }
-
-    #btn-start   { background: #4caf50; color: #000; }
-    #btn-pause   { background: #ff9800; color: #000; }
-    #btn-restart { background: #f44336; color: #fff; }
-    #btn-mute    { background: #1e1e3a; color: #aaa; border: 1px solid #333; }
-
-    select {
-      width: 100%;
-      padding: 8px;
-      background: #1e1e3a;
-      color: #fff;
-      border: 1px solid #333;
-      border-radius: 6px;
-      font-size: 0.9rem;
-    }
-
-    @media (max-width: 520px) {
-      h1 { font-size: 1.4rem; }
-      .game-wrap { flex-direction: column; align-items: center; }
-      .panel { flex-direction: row; flex-wrap: wrap; min-width: unset; width: 100%; }
-      .box { flex: 1 1 40%; }
-      .controls { display: none; }
+    /* ── Responsive ── */
+    @media(max-width:480px){
+      h1{font-size:1.2rem;letter-spacing:4px;margin-bottom:8px}
+      .wrap{flex-direction:column;align-items:center}
+      .panel{flex-direction:row;flex-wrap:wrap;width:100%;gap:8px}
+      .box{flex:1 1 calc(50% - 4px)}
+      .btns{flex-direction:row;flex-wrap:wrap}
+      .btns button{flex:1 1 calc(50% - 4px)}
+      .keys{display:none}
     }
   </style>
 </head>
 <body>
-  <h1>Tetris</h1>
-  <div class="game-wrap">
+  <h1>TETRIS</h1>
+  <div class="wrap">
     <canvas id="tetris-canvas"></canvas>
 
     <div class="panel">
-      <div class="box">
-        <label>Score</label>
-        <div class="val" id="score">0</div>
-      </div>
-      <div class="box">
-        <label>Level</label>
-        <div class="val" id="level">1</div>
-      </div>
-      <div class="box">
-        <label>Lines</label>
-        <div class="val" id="lines">0</div>
-      </div>
-      <div class="box">
-        <label>Best</label>
-        <div class="val" id="hiscore">0</div>
-      </div>
+      <div class="box"><small>Score</small><div class="v" id="score">0</div></div>
+      <div class="box"><small>Best</small><div class="v" id="best">0</div></div>
+      <div class="box"><small>Level</small><div class="v" id="level">1</div></div>
+      <div class="box"><small>Lines</small><div class="v" id="lines">0</div></div>
 
       <div class="box">
-        <label>Next</label>
-        <div class="next-wrap">
-          <canvas id="next-canvas" width="100" height="80"></canvas>
-        </div>
+        <small>Next</small>
+        <canvas id="next-canvas" width="100" height="76"></canvas>
       </div>
 
+      <div class="combo-wrap"><span id="combo"></span></div>
+
       <div class="box">
-        <label>Start Level</label>
+        <small>Start Level</small>
         <select id="level-select"></select>
       </div>
 
@@ -179,13 +95,12 @@
         <button id="btn-mute">🔊</button>
       </div>
 
-      <div class="box controls">
-        <label>Controls</label>
+      <div class="box keys">
         <div><kbd>← →</kbd> Move</div>
-        <div><kbd>↑</kbd> Rotate</div>
+        <div><kbd>↑</kbd> / <kbd>Z</kbd> Rotate</div>
         <div><kbd>↓</kbd> Soft drop</div>
         <div><kbd>Space</kbd> Hard drop</div>
-        <div><kbd>P</kbd> Pause &nbsp; <kbd>M</kbd> Mute</div>
+        <div><kbd>P</kbd> Pause &nbsp;<kbd>M</kbd> Mute</div>
       </div>
     </div>
   </div>
