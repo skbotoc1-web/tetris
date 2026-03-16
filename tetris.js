@@ -5,19 +5,29 @@ const COLS  = 10;
 const ROWS  = 20;
 const SZ    = 30;   // block size px
 
+// DAS (Delayed Auto Shift) timing - in milliseconds
+const DAS_INITIAL_DELAY  = 167;  // initial delay before auto-repeat
+const DAS_REPEAT_DELAY   = 33;   // auto-repeat interval
+
 const PIECES = {
-  I:{ color:'#00f0f0', shadow:'#007878', matrix:[[0,0,0,0],[1,1,1,1],[0,0,0,0],[0,0,0,0]] },
-  O:{ color:'#f0f000', shadow:'#787800', matrix:[[1,1],[1,1]] },
-  T:{ color:'#a000f0', shadow:'#500078', matrix:[[0,1,0],[1,1,1],[0,0,0]] },
-  S:{ color:'#00f000', shadow:'#007800', matrix:[[0,1,1],[1,1,0],[0,0,0]] },
-  Z:{ color:'#f00000', shadow:'#780000', matrix:[[1,1,0],[0,1,1],[0,0,0]] },
-  J:{ color:'#0000f0', shadow:'#000078', matrix:[[1,0,0],[1,1,1],[0,0,0]] },
-  L:{ color:'#f0a000', shadow:'#785000', matrix:[[0,0,1],[1,1,1],[0,0,0]] },
+  I:{ color:'#00f0f0', shadow:'#007878', matrix:[[0,0,0,0],[1,1,1,1],[0,0,0,0],[0,0,0,0]], startY: -1 },
+  O:{ color:'#f0f000', shadow:'#787800', matrix:[[1,1],[1,1]], startY: 0 },
+  T:{ color:'#a000f0', shadow:'#500078', matrix:[[0,1,0],[1,1,1],[0,0,0]], startY: 0 },
+  S:{ color:'#00f000', shadow:'#007800', matrix:[[0,1,1],[1,1,0],[0,0,0]], startY: 0 },
+  Z:{ color:'#f00000', shadow:'#780000', matrix:[[1,1,0],[0,1,1],[0,0,0]], startY: 0 },
+  J:{ color:'#0000f0', shadow:'#000078', matrix:[[1,0,0],[1,1,1],[0,0,0]], startY: 0 },
+  L:{ color:'#f0a000', shadow:'#785000', matrix:[[0,0,1],[1,1,1],[0,0,0]], startY: 0 },
 };
 const BAG = Object.keys(PIECES);
 
-const SPEEDS = [800,717,633,550,467,383,300,217,133,100]; // ms/drop per level
+const SPEEDS = [800,717,633,550,467,383,300,217,133,100]; // ms/drop per level (1-10)
 const SCORES = [0,100,300,500,800]; // 0-4 lines
+
+// ─── Named Game Constants ─────────────────────────────────────────
+const LOCK_DELAY_MS       = 500;    // piece lock delay after soft-drop
+const LOCK_MAX_RESETS     = 15;     // max DAS resets during lock
+const FLASH_ANIM_MS       = 150;    // line-clear flash duration
+const COMBO_FLASH_MS      = 800;    // combo popup duration
 
 // ─── Helpers ──────────────────────────────────────────────────
 function cloneMatrix(m) { return m.map(r=>[...r]); }
@@ -56,25 +66,30 @@ class TetrisGame {
     this.piece   = null;
     this._stats  = {I:0,O:0,T:0,S:0,Z:0,J:0,L:0};
     this._clearAnim = [];
-    this._lockDelay = 500;
+    this._lockDelay = LOCK_DELAY_MS;
     this._lockResets = 0;
-    this._lockMaxResets = 15;
+    this._lockMaxResets = LOCK_MAX_RESETS;
     this._lockPending = false;
     this._lockTimer = null;
     this._spawn();
+  }
+
+  _clearAllTimers() {
+    if(this._lockTimer) clearTimeout(this._lockTimer);
+    this._lockTimer = null;
   }
 
   _spawn() {
     this.piece = this.next;
     this.next  = this._bag.next();
     this.piece.x = Math.floor((COLS - this.piece.matrix[0].length) / 2);
-    this.piece.y = this.piece.key === 'I' ? -1 : 0;
+    this.piece.y = this.piece.key === 'I' ? -1 : 0;  // Fixed I-piece spawn above visible board
     this._stats[this.piece.key]++;
     if (this._hit(this.piece, 0, 0)) {
       this.gameOver = true;
     }
     this._lockPending = false;
-    if(this._lockTimer) clearTimeout(this._lockTimer);
+    this._clearAllTimers();
     this._lockResets = 0;
   }
 
@@ -93,7 +108,7 @@ class TetrisGame {
   commitLock() {
     if (!this._lockPending) return;
     this._lockPending = false;
-    if(this._lockTimer) clearTimeout(this._lockTimer);
+    this._clearAllTimers();
     return this._lock();
   }
 
@@ -135,7 +150,7 @@ class TetrisGame {
 
   resetLockTimer() {
     if (this._lockPending) {
-      if (this._lockTimer) clearTimeout(this._lockTimer);
+      this._clearAllTimers();
       if (this._lockResets < this._lockMaxResets) {
         this._lockResets++;
         this._lockTimer = setTimeout(() => {
