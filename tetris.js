@@ -343,27 +343,27 @@ class Sound {
     const tones = [];
     const vol = 0.25;
     switch(lvl) {
-      case 2: // kurze aufsteigende Tonfolge
-        tones.push([523,150],[659,150],[784,150],[1047,200]);
-        break;
-      case 3: // etwas länger, höhere Töne
-        tones.push([523,150],[659,150],[784,150],[1047,150],[1319,250]);
-        break;
-      case 4: // Dreiklang + Oktave
-        tones.push([523,100],[659,100],[784,100],[1047,300],[523,150],[1047,200]);
-        break;
-      case 5: // Fünf-Ton-Fanfare
-        tones.push([523,120],[659,120],[784,120],[1047,120],[1319,400]);
-        break;
-      case 6: // Schnellere Akzente + Bass
-        tones.push([261,100],[523,80],[659,80],[784,80],[1047,80],[1319,300]);
-        break;
-      case 7: // Triumphale Sequenz
-        tones.push([523,200],[659,150],[784,150],[1047,200],[1319,150],[1568,400]);
-        break;
-      default: // Level 8+ episch mit Akkordfolge
-        tones.push([523,150],[784,100],[1047,150],[659,100],[880,150],[1319,250],[1568,400],[1047,200],[1568,400]);
-        break;
+    case 2: // kurze aufsteigende Tonfolge
+      tones.push([523,150],[659,150],[784,150],[1047,200]);
+      break;
+    case 3: // etwas länger, höhere Töne
+      tones.push([523,150],[659,150],[784,150],[1047,150],[1319,250]);
+      break;
+    case 4: // Dreiklang + Oktave
+      tones.push([523,100],[659,100],[784,100],[1047,300],[523,150],[1047,200]);
+      break;
+    case 5: // Fünf-Ton-Fanfare
+      tones.push([523,120],[659,120],[784,120],[1047,120],[1319,400]);
+      break;
+    case 6: // Schnellere Akzente + Bass
+      tones.push([261,100],[523,80],[659,80],[784,80],[1047,80],[1319,300]);
+      break;
+    case 7: // Triumphale Sequenz
+      tones.push([523,200],[659,150],[784,150],[1047,200],[1319,150],[1568,400]);
+      break;
+    default: // Level 8+ episch mit Akkordfolge
+      tones.push([523,150],[784,100],[1047,150],[659,100],[880,150],[1319,250],[1568,400],[1047,200],[1568,400]);
+      break;
     }
     tones.forEach(([f,d],i) => this._tone(f, d, 'triangle', vol + (lvl>=8?0.1:0), i*0.08));
   }
