@@ -869,7 +869,12 @@ class TetrisController {
 //  BOOT
 // ═══════════════════════════════════════════════════════════════
 if (typeof window !== 'undefined' && !(typeof global !== 'undefined' && global.__TETRIS_NO_BOOT__)) {
-  window.addEventListener('DOMContentLoaded', ()=>{ window._t = new TetrisController(); });
+  const _boot = () => { window._t = new TetrisController(); };
+  if (document.readyState === 'loading') {
+    window.addEventListener('DOMContentLoaded', _boot);
+  } else {
+    _boot(); // DOM already ready (e.g. deferred/module script)
+  }
 }
 
 // Export für Tests (Node.js environment)

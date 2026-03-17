@@ -28,3 +28,5 @@ global.AudioContext = global.window.AudioContext;
 global.webkitAudioContext = global.window.AudioContext;
 global.navigator = global.window.navigator;
 global.localStorage = global.window.localStorage;
+// Prevent auto-boot in test environment
+global.__TETRIS_NO_BOOT__ = true;
