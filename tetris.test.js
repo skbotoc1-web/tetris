@@ -74,7 +74,9 @@ describe('TetrisGame', () => {
   test('spawns first piece correctly', () => {
     const game = new TetrisGame();
     expect(game.piece).toBeDefined();
-    expect(game.piece.x).toBe(3); // Center-ish
+    // x depends on piece width: 4-wide (I) → x=3, 2-wide (O) → x=4, 3-wide (others) → x=3 or 4
+    expect(game.piece.x).toBeGreaterThanOrEqual(3);
+    expect(game.piece.x).toBeLessThanOrEqual(4);
     expect(game.piece.y).toBeLessThanOrEqual(0);
   });
 
