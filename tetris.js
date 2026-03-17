@@ -341,9 +341,7 @@ class Sound {
   clear(n)       { [392,523,659,880].slice(0,n).forEach((f,i)=>this._tone(f,90,'sine',0.22,i*0.055)); }
   levelUp(lvl) {
     const tones = [];
-    const baseDur = 120;
     const vol = 0.25;
-    const baseFreq = 523;
     switch(lvl) {
       case 2: // kurze aufsteigende Tonfolge
         tones.push([523,150],[659,150],[784,150],[1047,200]);
@@ -844,20 +842,16 @@ class TetrisController {
     if (force||lines!==this._hudCache.lines) { this.$('lines').textContent=lines;                  this._hudCache.lines=lines; }
     
     // Level progress bar
-    const linesForNext = (level >= 10) ? 10 : ((level * 10) - lines);
-    const totalForNext = 10;
-    const progress = Math.min(100, ((lines % 10) / totalForNext) * 100);
     const progressEl = this.$('level-progress-bar');
     const progressTextEl = this.$('level-progress-text');
     if (progressEl && progressTextEl) {
       if (level >= 10) {
         progressEl.style.width = '100%';
-        progressEl.style.backgroundColor = '#4caf50';
         progressTextEl.textContent = 'MAX LEVEL';
       } else {
-        progressEl.style.width = (linesForNext <= 0 ? 100 : ((lines % 10) / totalForNext) * 100) + '%';
-        progressEl.style.backgroundColor = '#4caf50';
-        progressTextEl.textContent = `${linesForNext <= 0 ? 0 : (linesForNext > 10 ? 10 : linesForNext)} / ${totalForNext} Lines`;
+        const linesInLevel = lines % 10;
+        progressEl.style.width = (linesInLevel * 10) + '%';
+        progressTextEl.textContent = `${linesInLevel} / 10 Lines`;
       }
     }
   }
@@ -874,7 +868,7 @@ class TetrisController {
 // ═══════════════════════════════════════════════════════════════
 //  BOOT
 // ═══════════════════════════════════════════════════════════════
-if (typeof window !== 'undefined' && !global.__TETRIS_NO_BOOT__) {
+if (typeof window !== 'undefined' && !(typeof global !== 'undefined' && global.__TETRIS_NO_BOOT__)) {
   window.addEventListener('DOMContentLoaded', ()=>{ window._t = new TetrisController(); });
 }
 
