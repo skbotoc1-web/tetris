@@ -3,105 +3,313 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
-  <title>Tetris</title>
+  <title>TETRIS</title>
   <style>
-    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-    html,body{height:100%;background:#0a0a14;color:#e0e0e0;
-      font-family:'Segoe UI',system-ui,sans-serif;
-      display:flex;flex-direction:column;align-items:center;
-      justify-content:center;min-height:100vh;padding:12px;
-      user-select:none;-webkit-user-select:none}
-    h1{font-size:1.8rem;letter-spacing:8px;text-transform:uppercase;
-      color:#4caf50;text-shadow:0 0 20px rgba(76,175,80,.5);margin-bottom:12px}
+    /* ── Reset ─────────────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-    .wrap{display:flex;gap:14px;align-items:flex-start}
+    /* ── Base ──────────────────────────────────────────────── */
+    :root {
+      --bg:      #080812;
+      --surface: #111128;
+      --border:  #1e1e42;
+      --text:    #d0d0e8;
+      --muted:   #44446a;
+      --accent:  #4caf50;
+      --warn:    #ff9800;
+      --danger:  #f44336;
+      --glow:    rgba(76,175,80,.35);
+    }
 
-    /* Canvas */
-    #tetris-canvas{display:block;cursor:default}
+    html, body {
+      height: 100%;
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      min-height: 100vh;
+      padding: 16px 12px 24px;
+      user-select: none;
+      -webkit-user-select: none;
+      overflow-x: hidden;
+    }
 
-    /* Side panel */
-    .panel{display:flex;flex-direction:column;gap:10px;width:140px}
+    /* ── Header ────────────────────────────────────────────── */
+    .header {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      margin-bottom: 18px;
+      width: 100%;
+      max-width: 580px;
+      justify-content: center;
+    }
 
-    .box{background:#111122;border:1px solid #1e1e3a;border-radius:8px;padding:10px 12px}
-    .box small{display:block;font-size:.65rem;letter-spacing:2px;text-transform:uppercase;
-      color:#444;margin-bottom:2px}
-    .box .v{font-size:1.5rem;font-weight:700;color:#fff;font-variant-numeric:tabular-nums}
+    .logo {
+      font-size: 2rem;
+      font-weight: 900;
+      letter-spacing: 10px;
+      text-transform: uppercase;
+      color: var(--accent);
+      text-shadow: 0 0 24px var(--glow), 0 0 48px rgba(76,175,80,.15);
+    }
 
-    #next-canvas{background:#0a0a14;border-radius:4px;display:block;margin:0 auto}
+    /* ── Main layout ───────────────────────────────────────── */
+    .game-wrap {
+      display: flex;
+      gap: 16px;
+      align-items: flex-start;
+      width: 100%;
+      max-width: 620px;
+    }
 
-    .combo-wrap{height:20px;text-align:center}
-    #combo{font-size:.8rem;font-weight:700;color:#ff9800;
-      opacity:0;transition:opacity .15s;letter-spacing:1px}
+    /* ── Canvas ─────────────────────────────────────────────── */
+    .canvas-wrap {
+      position: relative;
+      flex-shrink: 0;
+      border-radius: 6px;
+      box-shadow: 0 0 0 1px var(--border), 0 8px 32px rgba(0,0,0,.6);
+      overflow: hidden;
+    }
 
-    select{width:100%;padding:7px 8px;background:#111122;color:#ddd;
-      border:1px solid #1e1e3a;border-radius:6px;font-size:.85rem}
-    select:disabled{opacity:.4}
+    #tetris-canvas { display: block; cursor: default; }
 
-    .btns{display:flex;flex-direction:column;gap:7px}
-    button{padding:9px;border:none;border-radius:6px;font-size:.82rem;
-      font-weight:700;cursor:pointer;text-transform:uppercase;letter-spacing:1px;
-      transition:filter .15s,transform .1s}
-    button:hover:not(:disabled){filter:brightness(1.2)}
-    button:active:not(:disabled){transform:translateY(1px)}
-    button:disabled{opacity:.35;cursor:default}
-    #btn-start  {background:#4caf50;color:#000}
-    #btn-pause  {background:#ff9800;color:#000}
-    #btn-restart{background:#f44336;color:#fff}
-    #btn-mute   {background:#1e1e3a;color:#888;border:1px solid #2a2a4a;font-size:1rem}
+    /* ── Side panel ─────────────────────────────────────────── */
+    .panel {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      flex: 1;
+      min-width: 130px;
+      max-width: 160px;
+    }
 
-    .keys{font-size:.72rem;color:#333;line-height:1.9}
-    .keys kbd{background:#111122;border:1px solid #222244;border-radius:3px;
-      padding:1px 4px;color:#666;font-size:.68rem}
+    /* ── Stat box ───────────────────────────────────────────── */
+    .box {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 10px 14px;
+      transition: border-color .2s;
+    }
+    .box small {
+      display: block;
+      font-size: .62rem;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 3px;
+    }
+    .box .val {
+      font-size: 1.55rem;
+      font-weight: 800;
+      color: #fff;
+      font-variant-numeric: tabular-nums;
+      line-height: 1;
+    }
+    .box.highlight { border-color: var(--accent); }
 
-    /* ── Responsive ── */
-    @media(max-width:480px){
-      h1{font-size:1.2rem;letter-spacing:4px;margin-bottom:8px}
-      .wrap{flex-direction:column;align-items:center}
-      .panel{flex-direction:row;flex-wrap:wrap;width:100%;gap:8px}
-      .box{flex:1 1 calc(50% - 4px)}
-      .btns{flex-direction:row;flex-wrap:wrap}
-      .btns button{flex:1 1 calc(50% - 4px)}
-      .keys{display:none}
+    /* Next piece preview */
+    #next-canvas {
+      display: block;
+      margin: 0 auto;
+      background: var(--bg);
+      border-radius: 4px;
+    }
+
+    /* ── Toasts ─────────────────────────────────────────────── */
+    .toast-row {
+      min-height: 22px;
+      display: flex;
+      gap: 6px;
+      justify-content: center;
+    }
+    .toast {
+      font-size: .78rem;
+      font-weight: 700;
+      letter-spacing: 1px;
+      opacity: 0;
+      transition: opacity .15s;
+      text-align: center;
+    }
+    #combo       { color: var(--warn); }
+    #level-up-toast { color: var(--accent); }
+
+    /* ── Controls ───────────────────────────────────────────── */
+    .box.start-level select {
+      width: 100%;
+      padding: 7px 8px;
+      background: var(--bg);
+      color: var(--text);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      font-size: .85rem;
+      margin-top: 4px;
+      appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%2344446a'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 10px center;
+      padding-right: 28px;
+      cursor: pointer;
+    }
+    select:disabled { opacity: .4; cursor: default; }
+
+    .btns {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    button {
+      padding: 10px 8px;
+      border: none;
+      border-radius: 8px;
+      font-size: .82rem;
+      font-weight: 700;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: filter .15s, transform .1s, box-shadow .15s;
+      outline: none;
+    }
+    button:hover:not(:disabled)  { filter: brightness(1.18); }
+    button:active:not(:disabled) { transform: translateY(1px); filter: brightness(.95); }
+    button:disabled               { opacity: .35; cursor: default; }
+    button:focus-visible          { box-shadow: 0 0 0 2px #fff4; }
+
+    #btn-start { background: var(--accent);  color: #000; box-shadow: 0 2px 12px rgba(76,175,80,.3); }
+    #btn-pause { background: var(--warn);    color: #000; }
+    #btn-mute  { background: var(--surface); color: var(--muted); border: 1px solid var(--border); font-size: 1rem; }
+
+    /* ── Key hints ──────────────────────────────────────────── */
+    .keys {
+      font-size: .68rem;
+      color: var(--muted);
+      line-height: 2;
+    }
+    .keys kbd {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-bottom-width: 2px;
+      border-radius: 4px;
+      padding: 1px 5px;
+      color: #8888aa;
+      font-size: .65rem;
+      font-family: inherit;
+    }
+    .keys .row { margin-bottom: 1px; }
+
+    /* ── Responsive — mobile ────────────────────────────────── */
+    @media (max-width: 520px) {
+      body { padding: 8px 6px 20px; }
+
+      .logo { font-size: 1.4rem; letter-spacing: 6px; margin-bottom: 10px; }
+
+      .game-wrap {
+        flex-direction: column;
+        align-items: center;
+      }
+
+      .canvas-wrap {
+        /* Scale canvas to fit narrow screens */
+        transform-origin: top center;
+      }
+
+      .panel {
+        flex-direction: row;
+        flex-wrap: wrap;
+        max-width: 100%;
+        width: 100%;
+        min-width: unset;
+      }
+
+      .box { flex: 1 1 calc(50% - 6px); }
+      .box .val { font-size: 1.3rem; }
+
+      .box.next-box { flex: 1 1 100%; }
+      .box.start-level { flex: 1 1 100%; }
+
+      .btns {
+        flex-direction: row;
+        flex-wrap: wrap;
+        width: 100%;
+      }
+      .btns button { flex: 1 1 calc(50% - 4px); }
+
+      .keys  { display: none; }
+      .toast-row { justify-content: flex-start; }
     }
   </style>
 </head>
 <body>
-  <h1>TETRIS</h1>
-  <div class="wrap">
-    <canvas id="tetris-canvas"></canvas>
 
+  <div class="header">
+    <div class="logo">TETRIS</div>
+  </div>
+
+  <div class="game-wrap">
+
+    <!-- Canvas -->
+    <div class="canvas-wrap">
+      <canvas id="tetris-canvas"></canvas>
+    </div>
+
+    <!-- Side panel -->
     <div class="panel">
-      <div class="box"><small>Score</small><div class="v" id="score">0</div></div>
-      <div class="box"><small>Best</small><div class="v" id="best">0</div></div>
-      <div class="box"><small>Level</small><div class="v" id="level">1</div></div>
-      <div class="box"><small>Lines</small><div class="v" id="lines">0</div></div>
 
       <div class="box">
+        <small>Score</small>
+        <div class="val" id="score">0</div>
+      </div>
+
+      <div class="box">
+        <small>Best</small>
+        <div class="val" id="best">0</div>
+      </div>
+
+      <div class="box">
+        <small>Level</small>
+        <div class="val" id="level">1</div>
+      </div>
+
+      <div class="box">
+        <small>Lines</small>
+        <div class="val" id="lines">0</div>
+      </div>
+
+      <div class="box next-box">
         <small>Next</small>
         <canvas id="next-canvas" width="100" height="76"></canvas>
       </div>
 
-      <div class="combo-wrap"><span id="combo"></span></div>
+      <!-- Toasts -->
+      <div class="toast-row">
+        <span class="toast" id="combo"></span>
+        <span class="toast" id="level-up-toast"></span>
+      </div>
 
-      <div class="box">
+      <div class="box start-level">
         <small>Start Level</small>
         <select id="level-select"></select>
       </div>
 
       <div class="btns">
         <button id="btn-start">Start</button>
-        <button id="btn-pause">Pause</button>
-        <button id="btn-restart">Restart</button>
+        <button id="btn-pause" disabled>Pause</button>
         <button id="btn-mute">🔊</button>
       </div>
 
       <div class="box keys">
-        <div><kbd>← →</kbd> Move</div>
-        <div><kbd>↑</kbd> / <kbd>Z</kbd> Rotate</div>
-        <div><kbd>↓</kbd> Soft drop</div>
-        <div><kbd>Space</kbd> Hard drop</div>
-        <div><kbd>P</kbd> Pause &nbsp;<kbd>M</kbd> Mute</div>
+        <div class="row"><kbd>← →</kbd> Move</div>
+        <div class="row"><kbd>↑</kbd> / <kbd>Z</kbd> Rotate</div>
+        <div class="row"><kbd>↓</kbd> Soft drop</div>
+        <div class="row"><kbd>Space</kbd> Hard drop</div>
+        <div class="row"><kbd>P</kbd> Pause &nbsp; <kbd>M</kbd> Mute</div>
       </div>
+
     </div>
   </div>
 
