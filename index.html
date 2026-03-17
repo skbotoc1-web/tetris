@@ -124,6 +124,15 @@
       width: 0%;
       transition: width 0.3s ease;
     }
+    .progress-text {
+      font-size: .75rem;
+      color: var(--muted);
+      text-align: center;
+      margin-top: 3px;
+      font-variant-numeric: tabular-nums;
+    }
+    /* compact progress box on desktop */
+    .progress-box { padding: 7px 13px; }
 
     /* ── Toasts ─────────────────────────────────────────────── */
     .toasts {
@@ -288,6 +297,7 @@
       .val   { font-size: 1.25rem; }
       .box.next-box  { flex: 1 1 calc(50% - 5px); }
       .box.hold-box  { flex: 1 1 calc(50% - 5px); }
+      .box.progress-box { flex: 1 1 100%; padding: 7px 13px; }
       .settings      { flex: 1 1 100%; }
       .btns          { flex-direction: row; flex-wrap: wrap; width: 100%; }
       .btns button   { flex: 1 1 calc(50% - 4px); }
@@ -323,12 +333,12 @@
         <small>Level</small>
         <div class="val" id="level">1</div>
       </div>
-      <div class="box">
+      <div class="box progress-box">
         <small>Next Level</small>
         <div class="progress-bar-wrap">
           <div class="progress-bar-fill" id="level-progress-bar"></div>
         </div>
-        <div class="val" id="level-progress-text">0 / 10 Lines</div>
+        <div class="progress-text" id="level-progress-text">0 / 10</div>
       </div>
       <div class="box">
         <small>Lines</small>
