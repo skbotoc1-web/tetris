@@ -8,7 +8,8 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "lint": "eslint . --ext .js,.jsx --fix"
+    "lint": "eslint . --ext .js,.jsx --fix",
+    "test": "jest --setupFilesAfterEnv=./jest.setup.js"
   },
   "keywords": [
     "tetris",
@@ -21,10 +22,24 @@
   "devDependencies": {
     "eslint": "^8.57.0",
     "eslint-config-prettier": "^9.1.0",
+    "jest": "^30.3.0",
+    "jsdom": "^29.0.0",
     "prettier": "^3.2.5",
     "vite": "^5.2.0"
   },
   "dependencies": {
     "ws": "^8.19.0"
-  }
+  },
+  "main": "tetris.js",
+  "directories": {
+    "test": "tests"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/skbotoc1-web/tetris.git"
+  },
+  "bugs": {
+    "url": "https://github.com/skbotoc1-web/tetris/issues"
+  },
+  "homepage": "https://github.com/skbotoc1-web/tetris#readme"
 }

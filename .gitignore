@@ -1,11 +1,19 @@
-*.log
-*.pid
-orchestrator*.log
-orchestrator.pid
-github/
-qa/
-src/
-docs/
-PROJECT.md
-node_modules/
-dist/
+# ESLint Cache
+/.eslintcache
+
+# Jest Coverage
+/coverage/
+
+# Test Reports
+/test-results/
+
+# Build Output (Vite)
+/dist/
+
+# IDE
+/.idea/
+/.vscode/
+
+# OS
+.DS_Store
+Thumbs.db

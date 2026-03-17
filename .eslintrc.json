@@ -1,0 +1,45 @@
+{
+  "extends": "eslint:recommended",
+  "env": {
+    "browser": true,
+    "node": true,
+    "es2021": true,
+    "jest": true
+  },
+  "parserOptions": {
+    "ecmaVersion": 2021,
+    "sourceType": "module"
+  },
+  "globals": {
+    "ROWS": "readonly",
+    "COLS": "readonly",
+    "SZ": "readonly",
+    "PIECES": "readonly",
+    "BAG_KEYS": "readonly",
+    "COLOR_TO_KEY": "readonly",
+    "SPEEDS": "readonly",
+    "SCORES": "readonly",
+    "LEVEL_COLORS": "readonly",
+    "LOCK_DELAY_MS": "readonly",
+    "LOCK_MAX_RESETS": "readonly",
+    "FLASH_MS": "readonly",
+    "COMBO_MS": "readonly",
+    "LEVELUP_MS": "readonly",
+    "GAMEOVER_WAIT_MS": "readonly",
+    "Settings": "readonly",
+    "cloneMatrix": "readonly",
+    "rotateCW": "readonly",
+    "Bag": "readonly",
+    "TetrisGame": "readonly",
+    "Sound": "readonly",
+    "Renderer": "readonly",
+    "TetrisController": "readonly"
+  },
+  "rules": {
+    "no-unused-vars": ["warn", { "argsIgnorePattern": "^_|next|prev" }],
+    "no-console": "off",
+    "semi": ["error", "always"],
+    "quotes": ["warn", "single"],
+    "indent": ["warn", 2]
+  }
+}

@@ -52,8 +52,8 @@ const Settings = (() => {
     sfx:         true,
   };
   let _d = null;
-  const load  = () => { try { _d = {...DEFAULTS, ...JSON.parse(localStorage.getItem('ts_cfg') || '{}')}; } catch{ _d = {...DEFAULTS}; } };
-  const save  = () => { try { localStorage.setItem('ts_cfg', JSON.stringify(_d)); } catch{} };
+  const load  = () => { try { _d = {...DEFAULTS, ...JSON.parse(localStorage.getItem('ts_cfg') || '{}')}; } catch(_){ _d = {...DEFAULTS}; } };
+  const save  = () => { try { localStorage.setItem('ts_cfg', JSON.stringify(_d)); } catch(_){ /* ignored */ } };
   return {
     get(k)    { if (!_d) load(); return _d[k] ?? DEFAULTS[k]; },
     set(k,v)  { if (!_d) load(); _d[k]=v; save(); },
@@ -236,7 +236,7 @@ class TetrisGame {
 
   rotate(dir=1) {
     const m = dir>0 ? rotateCW(this.piece.matrix)
-                    : rotateCW(rotateCW(rotateCW(this.piece.matrix)));
+      : rotateCW(rotateCW(rotateCW(this.piece.matrix)));
     // SRS-style wall kicks: horizontal + vertical offsets
     const kicks = [[0,0],[-1,0],[1,0],[0,-1],[-2,0],[2,0]];
     for (const [dx,dy] of kicks) {
@@ -269,7 +269,7 @@ class TetrisGame {
     if (!this.canHold || !Settings.get('hold')) return false;
     this.canHold = false;
     const stored = { key:this.piece.key, color:this.piece.color,
-                     shadow:this.piece.shadow, matrix:cloneMatrix(PIECES[this.piece.key].matrix) };
+      shadow:this.piece.shadow, matrix:cloneMatrix(PIECES[this.piece.key].matrix) };
     const swap = this.hold;
     this.hold = stored;
     this._spawn(swap, false); // spawn held piece; canHold stays false until next natural spawn
@@ -308,7 +308,7 @@ class Sound {
   get _sfxOn()   { return Settings.get('sfx');   }
 
   _ctx() {
-    if (!this._ac) try { this._ac = new (window.AudioContext||window.webkitAudioContext)(); } catch(e){}
+    if (!this._ac) try { this._ac = new (window.AudioContext||window.webkitAudioContext)(); } catch(_){ /* ignored */ }
     if (this._ac?.state==='suspended') this._ac.resume();
     return this._ac;
   }
@@ -580,7 +580,7 @@ class TetrisController {
     const el = this.$(id);
     if (!el) return;
     el.checked = Settings.get(key);
-    el.addEventListener('change', ()=>{ const v=onSet(el.checked); Settings.set(key, el.checked); });
+    el.addEventListener('change', ()=>{ Settings.set(key, el.checked); });
   }
 
   _applySettingsToUI() {
@@ -622,8 +622,8 @@ class TetrisController {
 
   _onKeyDown(e) {
     const PREVENT=['ArrowLeft','ArrowRight','ArrowDown','ArrowUp','Space',
-                   'KeyA','KeyD','KeyS','KeyW','KeyZ','KeyX','KeyC',
-                   'KeyP','Escape','KeyM'];
+      'KeyA','KeyD','KeyS','KeyW','KeyZ','KeyX','KeyC',
+      'KeyP','Escape','KeyM'];
     if (PREVENT.includes(e.code)) e.preventDefault();
     if (e.repeat) return;
 
@@ -675,20 +675,20 @@ class TetrisController {
     if (this.state!=='running'||!this.game) return;
     const g=this.game;
     switch(a) {
-      case 'left':       if (g.moveLeft())   this.sound.move(); break;
-      case 'right':      if (g.moveRight())  this.sound.move(); break;
-      case 'rotate':     if (g.rotate(1))    { this.sound.rotate(); navigator.vibrate?.(6); } break;
-      case 'rotate_ccw': if (g.rotate(-1))   { this.sound.rotate(); navigator.vibrate?.(6); } break;
-      case 'soft': {
-        const r=g.softDrop();
-        if (!r.moved&&g.gameOver) this._onGameOver();
-        break;
-      }
-      case 'hard':
-        if (!Settings.get('hardDrop')) break;
-        { const r=g.hardDrop(); this.sound.hardDrop(r.dropped||0); navigator.vibrate?.([8,8,30]); this._onLock(r); break; }
-      case 'hold':
-        if (g.holdPiece()) { this.sound.hold(); this._updateHUD(true); } break;
+    case 'left':       if (g.moveLeft())   this.sound.move(); break;
+    case 'right':      if (g.moveRight())  this.sound.move(); break;
+    case 'rotate':     if (g.rotate(1))    { this.sound.rotate(); navigator.vibrate?.(6); } break;
+    case 'rotate_ccw': if (g.rotate(-1))   { this.sound.rotate(); navigator.vibrate?.(6); } break;
+    case 'soft': {
+      const r=g.softDrop();
+      if (!r.moved&&g.gameOver) this._onGameOver();
+      break;
+    }
+    case 'hard':
+      if (!Settings.get('hardDrop')) break;
+      { const r=g.hardDrop(); this.sound.hardDrop(r.dropped||0); navigator.vibrate?.([8,8,30]); this._onLock(r); break; }
+    case 'hold':
+      if (g.holdPiece()) { this.sound.hold(); this._updateHUD(true); } break;
     }
   }
 
@@ -809,15 +809,22 @@ class TetrisController {
   }
 
   _saveBest(score) {
-    try { const b=+localStorage.getItem('tetris_best')||0; if(score>b) localStorage.setItem('tetris_best',score); } catch(e){}
+    try { const b=+localStorage.getItem('tetris_best')||0; if(score>b) localStorage.setItem('tetris_best',score); } catch(_){ /* ignored */ }
   }
   _refreshBest() {
     const el=this.$('best'); if(!el) return;
-    try { el.textContent=(+localStorage.getItem('tetris_best')||0).toLocaleString(); } catch(e){ el.textContent='0'; }
+    try { el.textContent=(+localStorage.getItem('tetris_best')||0).toLocaleString(); } catch(_){ /* ignored */ el.textContent='0'; }
   }
 }
 
 // ═══════════════════════════════════════════════════════════════
 //  BOOT
 // ═══════════════════════════════════════════════════════════════
-window.addEventListener('DOMContentLoaded', ()=>{ window._t = new TetrisController(); });
+if (typeof window !== 'undefined' && !global.__TETRIS_NO_BOOT__) {
+  window.addEventListener('DOMContentLoaded', ()=>{ window._t = new TetrisController(); });
+}
+
+// Export für Tests (Node.js environment)
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = { TetrisGame, Bag, Sound, Renderer, TetrisController, Settings };
+}
