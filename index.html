@@ -108,6 +108,23 @@
       border-radius: 4px;
     }
 
+    /* Progress bar for level progress */
+    .progress-bar-wrap {
+      background: #2a2a3a;
+      border-radius: 10px;
+      height: 10px;
+      margin: 4px auto 0;
+      overflow: hidden;
+      width: 100%;
+    }
+    .progress-bar-fill {
+      background: linear-gradient(90deg, #4caf50, #81c784);
+      border-radius: 10px;
+      height: 100%;
+      width: 0%;
+      transition: width 0.3s ease;
+    }
+
     /* ── Toasts ─────────────────────────────────────────────── */
     .toasts {
       min-height: 20px;
@@ -305,6 +322,13 @@
       <div class="box">
         <small>Level</small>
         <div class="val" id="level">1</div>
+      </div>
+      <div class="box">
+        <small>Next Level</small>
+        <div class="progress-bar-wrap">
+          <div class="progress-bar-fill" id="level-progress-bar"></div>
+        </div>
+        <div class="val" id="level-progress-text">0 / 10 Lines</div>
       </div>
       <div class="box">
         <small>Lines</small>

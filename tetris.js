@@ -101,6 +101,7 @@ class TetrisGame {
     this.lines    = 0;
     this.combo    = 0;
     this.gameOver = false;
+    this.backToBack = false;
 
     this._bag   = new Bag();
     this.next   = this._bag.next();
@@ -176,11 +177,17 @@ class TetrisGame {
       this.lines += full.length;
       this.combo++;
       const base  = SCORES[full.length] * this.level;
-      const bonus = this.combo>1 ? Math.floor(base*(this.combo-1)*0.5) : 0;
-      this.score += base + bonus;
+      // Back-to-back Tetris bonus: +50% if last clear was also Tetris
+      const b2bBonus = (full.length === 4 && this.backToBack) ? Math.floor(base * 0.5) : 0;
+      this.backToBack = (full.length === 4);
+      // Combo bonus
+      const comboBonus = this.combo > 1 
+        ? [0, 0, 50, 100, 150][Math.min(this.combo, 4)] * this.level 
+        : 0;
+      this.score += base + b2bBonus + comboBonus;
       const newLvl = Math.min(10, 1 + Math.floor(this.lines/10));
       if (newLvl > this.level) this.level = newLvl;
-      return { cleared:full.length, combo:this.combo };
+      return { cleared:full.length, combo:this.combo, b2b:this.backToBack };
     }
     this.combo = 0;
     return { cleared:0 };
@@ -332,7 +339,36 @@ class Sound {
   land()         { this._tone(110,70,'square',0.16); }
   hold()         { this._tone(440,60,'sine',0.12); }
   clear(n)       { [392,523,659,880].slice(0,n).forEach((f,i)=>this._tone(f,90,'sine',0.22,i*0.055)); }
-  levelUp()      { [523,659,784,1047].forEach((f,i)=>this._tone(f,110,'sine',0.22,i*0.07)); }
+  levelUp(lvl) {
+    const tones = [];
+    const baseDur = 120;
+    const vol = 0.25;
+    const baseFreq = 523;
+    switch(lvl) {
+      case 2: // kurze aufsteigende Tonfolge
+        tones.push([523,150],[659,150],[784,150],[1047,200]);
+        break;
+      case 3: // etwas länger, höhere Töne
+        tones.push([523,150],[659,150],[784,150],[1047,150],[1319,250]);
+        break;
+      case 4: // Dreiklang + Oktave
+        tones.push([523,100],[659,100],[784,100],[1047,300],[523,150],[1047,200]);
+        break;
+      case 5: // Fünf-Ton-Fanfare
+        tones.push([523,120],[659,120],[784,120],[1047,120],[1319,400]);
+        break;
+      case 6: // Schnellere Akzente + Bass
+        tones.push([261,100],[523,80],[659,80],[784,80],[1047,80],[1319,300]);
+        break;
+      case 7: // Triumphale Sequenz
+        tones.push([523,200],[659,150],[784,150],[1047,200],[1319,150],[1568,400]);
+        break;
+      default: // Level 8+ episch mit Akkordfolge
+        tones.push([523,150],[784,100],[1047,150],[659,100],[880,150],[1319,250],[1568,400],[1047,200],[1568,400]);
+        break;
+    }
+    tones.forEach(([f,d],i) => this._tone(f, d, 'triangle', vol + (lvl>=8?0.1:0), i*0.08));
+  }
   over()         { [440,330,220,110].forEach((f,i)=>this._tone(f,180,'sawtooth',0.18,i*0.13)); }
   hardDrop(n)    { this._tone(140+n*4,55,'square',0.14); }
 
@@ -703,7 +739,7 @@ class TetrisController {
     }
     if (this.game.level>this._prevLevel) {
       this._prevLevel=this.game.level;
-      this.sound.levelUp();
+      this.sound.levelUp(this.game.level);
       this._showToast('levelup', '▲ LEVEL '+this.game.level, LEVELUP_MS);
     }
     navigator.vibrate?.(4);
@@ -806,6 +842,24 @@ class TetrisController {
     if (force||score!==this._hudCache.score) { this.$('score').textContent=score.toLocaleString(); this._hudCache.score=score; }
     if (force||level!==this._hudCache.level) { this.$('level').textContent=level;                  this._hudCache.level=level; }
     if (force||lines!==this._hudCache.lines) { this.$('lines').textContent=lines;                  this._hudCache.lines=lines; }
+    
+    // Level progress bar
+    const linesForNext = (level >= 10) ? 10 : ((level * 10) - lines);
+    const totalForNext = 10;
+    const progress = Math.min(100, ((lines % 10) / totalForNext) * 100);
+    const progressEl = this.$('level-progress-bar');
+    const progressTextEl = this.$('level-progress-text');
+    if (progressEl && progressTextEl) {
+      if (level >= 10) {
+        progressEl.style.width = '100%';
+        progressEl.style.backgroundColor = '#4caf50';
+        progressTextEl.textContent = 'MAX LEVEL';
+      } else {
+        progressEl.style.width = (linesForNext <= 0 ? 100 : ((lines % 10) / totalForNext) * 100) + '%';
+        progressEl.style.backgroundColor = '#4caf50';
+        progressTextEl.textContent = `${linesForNext <= 0 ? 0 : (linesForNext > 10 ? 10 : linesForNext)} / ${totalForNext} Lines`;
+      }
+    }
   }
 
   _saveBest(score) {
