@@ -1,55 +1,53 @@
-# 🎮 Tetris
+# 🎮 Tetris 2026
 
-A classic Tetris game playable in any modern browser — built with pure Vanilla JavaScript, HTML5 Canvas, and Web Audio API. No dependencies, no build step.
+Neon-styled, browser-based Tetris mit sauberer Game-Engine, Mobile-Touch-Controls und CI-ready Build.
 
-[![Live Demo](https://img.shields.io/badge/▶_Play_Now-blue?style=for-the-badge)](https://skbotoc1-web.github.io/tetris/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+**Live:** https://skbotoc1-web.github.io/tetris/
 
-## ✨ Features
+## Highlights
 
-- 🎮 **10 Difficulty Levels** — speed increases each level
-- 🎵 **MIDI-style Sounds** — synthesized via Web Audio API (no audio files needed)
-- 📱 **Responsive** — works on desktop and mobile (touch swipe support)
-- 🏆 **High Scores** — top 5 saved in localStorage
-- 👻 **Ghost Piece** — shows where the tetromino will land
-- ⌨️ **Full Keyboard Support** — Arrow keys, WASD, Space (hard drop), P (pause)
+- 7-Bag Randomizer + Ghost Piece + Hold + Hard Drop
+- Kombos, Back-to-Back Tetris Bonus, progressive Level-Kurve
+- Mobile-optimiertes UI inkl. Touch-Buttons
+- Persistente Settings (Ghost, Hold, Hard Drop, SFX, Music, DAS)
+- Highscore in localStorage
+- Frame-rate-unabhängige Gravity (stabil auf langsamen/schnellen Geräten)
 
-## 🕹️ Controls
+## Controls
 
-| Key | Action |
-|---|---|
-| ← → / A D | Move left / right |
-| ↑ / W | Rotate |
-| ↓ / S | Soft drop |
-| Space | Hard drop |
-| P | Pause |
+- **Move:** `←` / `→`
+- **Rotate CW:** `↑` oder `X`
+- **Rotate CCW:** `Z`
+- **Soft Drop:** `↓`
+- **Hard Drop:** `Space`
+- **Hold:** `C` / `Shift`
+- **Pause:** `P` / `Esc`
+- **Music Toggle:** `M`
 
-## 🚀 Run Locally
+## Development
 
 ```bash
-# Clone
 git clone https://github.com/skbotoc1-web/tetris.git
 cd tetris
-
-# Open directly (no build needed)
-open index.html
-
-# Or serve locally
-npx serve .
+npm install
+npm run dev
 ```
 
-## 🛠️ Tech Stack
+## QA Loop
 
-- Vanilla JavaScript (ES6)
-- HTML5 Canvas
-- Web Audio API (synthesized MIDI sounds)
-- CSS3 (dark theme, responsive)
+```bash
+npm test
+npm run lint
+npm run build
+```
 
-## 📄 License
+## Tech
 
-MIT License — Copyright (c) 2026 Stefan Kaiser
+- Vanilla JS + Canvas + Web Audio API
+- Vite (build/dev)
+- Jest (unit tests)
+- ESLint + Prettier
 
----
+## License
 
-*Built autonomously by [SKBOT](https://github.com/skbotoc1-web) multi-agent system*
-*Mission: Building an autonomous 24/7 business that creates value for the real world.*
+MIT
