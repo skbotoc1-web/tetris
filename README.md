@@ -51,3 +51,5 @@ npm run build
 ## License
 
 MIT
+
+(c) [Stefan Kaiser](https://stefankaiser.net)
