@@ -570,6 +570,7 @@ class TetrisController {
     this._bindUI();
     this._applySettingsToUI();
     this.renderer.idle();
+    this._setStateLabel('Ready');
   }
 
   // ── UI ────────────────────────────────────────────────────────
@@ -587,6 +588,13 @@ class TetrisController {
     this.$('btn-start').addEventListener('click', ()=>this.start());
     this.$('btn-pause').addEventListener('click', ()=>this.togglePause());
     this.$('btn-mute').addEventListener('click',  ()=>this._toggleMusic());
+
+    this._bindTapButton('btn-left',   'left');
+    this._bindTapButton('btn-right',  'right');
+    this._bindTapButton('btn-down',   'soft');
+    this._bindTapButton('btn-rotate', 'rotate');
+    this._bindTapButton('btn-hard',   'hard');
+    this._bindTapButton('btn-hold',   'hold');
 
     // Settings toggles
     this._bindSetting('set-ghost',    'ghost',    v=>v);
@@ -610,11 +618,22 @@ class TetrisController {
     this._refreshBest();
   }
 
-  _bindSetting(id, key, onSet) {
+  _bindSetting(id, key) {
     const el = this.$(id);
     if (!el) return;
     el.checked = Settings.get(key);
     el.addEventListener('change', ()=>{ Settings.set(key, el.checked); });
+  }
+
+  _bindTapButton(id, action) {
+    const btn = this.$(id);
+    if (!btn) return;
+    btn.addEventListener('click', () => this._action(action));
+  }
+
+  _setStateLabel(text) {
+    const el = this.$('state-label');
+    if (el) el.textContent = text;
   }
 
   _applySettingsToUI() {
@@ -776,6 +795,7 @@ class TetrisController {
     this.$('level-select').disabled=true;
 
     this.sound.startMusic();
+    this._setStateLabel('Running');
     this.rafId=requestAnimationFrame(t=>this._loop(t));
   }
 
@@ -785,11 +805,13 @@ class TetrisController {
       this._clearDas();
       this.sound.stopMusic();
       this.$('btn-pause').textContent='Resume';
+      this._setStateLabel('Paused');
       this.renderer.overlay('PAUSED','Press  P  to  resume','#ff9800');
     } else if (this.state==='paused') {
       this.state='running';
       this.lastTime=0;
       this.$('btn-pause').textContent='Pause';
+      this._setStateLabel('Running');
       this.sound.startMusic();
       this.rafId=requestAnimationFrame(t=>this._loop(t));
     }
@@ -828,6 +850,7 @@ class TetrisController {
     this.$('btn-pause').disabled=true;
     this.$('btn-start').textContent='Start';
     this.$('level-select').disabled=false;
+    this._setStateLabel('Game Over');
     this._refreshBest();
     this._updateHUD(true);
   }
@@ -851,7 +874,7 @@ class TetrisController {
       } else {
         const linesInLevel = lines % 10;
         progressEl.style.width = (linesInLevel * 10) + '%';
-        progressTextEl.textContent = `${linesInLevel} / 10 Lines`;
+        progressTextEl.textContent = `${linesInLevel} / 10`;
       }
     }
   }

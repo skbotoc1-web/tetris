@@ -1,23 +1,24 @@
 // Mock window for node environment
+const _store = {};
+
 global.window = {
   document: {
-    getElementById: (id) => null,
-    addEventListener: (evt, fn) => {},
+    getElementById: (_id) => null,
+    addEventListener: (_evt, _fn) => {},
     removeEventListener: () => {},
-    createElement: (tag) => ({ style: {}, dataset: {}, classList: { add: () => {}, remove: () => {} } })
+    createElement: (_tag) => ({ style: {}, dataset: {}, classList: { add: () => {}, remove: () => {} } })
   },
   AudioContext: class { constructor() { this.state = 'running'; } resume() { this.state = 'running'; } },
   requestAnimationFrame: (fn) => setTimeout(fn, 0),
   cancelAnimationFrame: (id) => clearTimeout(id),
   navigator: { vibrate: () => {} },
   localStorage: {
-    _data: {},
-    getItem: (k) => this._data[k] ?? null,
-    setItem: (k, v) => { this._data[k] = String(v); },
-    removeItem: (k) => delete this._data[k],
-    clear: () => { this._data = {}; }
+    getItem: (k) => (_store[k] ?? null),
+    setItem: (k, v) => { _store[k] = String(v); },
+    removeItem: (k) => { delete _store[k]; },
+    clear: () => { Object.keys(_store).forEach(k => delete _store[k]); }
   },
-  addEventListener: (evt, fn) => {},
+  addEventListener: (_evt, _fn) => {},
   removeEventListener: () => {}
 };
 

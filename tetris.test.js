@@ -3,7 +3,7 @@
  * Tests Game Logic, Bag Randomizer, Sound, Renderer
  */
 
-const { TetrisGame, Bag, Sound, Renderer, Settings } = require('./tetris.js');
+const { TetrisGame, Bag, Settings } = require('./tetris.js');
 
 const ROWS = 20; // constants from tetris.js
 const COLS = 10;
@@ -40,7 +40,6 @@ describe('Bag Randomizer', () => {
   });
 
   test('shuffles pieces correctly', () => {
-    const bag = new Bag();
     const runs = [];
     for (let r = 0; r < 10; r++) {
       const bag2 = new Bag();
