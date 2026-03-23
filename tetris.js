@@ -298,91 +298,119 @@ class TetrisGame {
 // ═══════════════════════════════════════════════════════════════
 class Sound {
   constructor() {
-    this._ac    = null;
-    this._mTimer= null;
-    this._mIdx  = 0;
-    this._melody= [
-      [659,400],[494,200],[523,200],[587,400],[523,200],[494,200],
-      [440,400],[440,200],[523,200],[659,400],[587,200],[523,200],
-      [494,600],[523,200],[587,400],[659,400],[523,400],[440,400],[440,400],null,
-      [587,400],[698,200],[880,400],[784,200],[698,200],
-      [659,600],[523,200],[659,400],[587,200],[523,200],
-      [494,400],[494,200],[523,200],[587,400],[659,400],[523,400],[440,400],[440,400],null,
-    ];
+    this._ac = null;
+    this._mTimer = null;
+    this._mIdx = 0;
+    this._currentTheme = 'classic';
+    this._melodies = {
+      classic: [
+        [659, 400], [494, 200], [523, 200], [587, 400], [523, 200], [494, 200],
+        [440, 400], [440, 200], [523, 200], [659, 400], [587, 200], [523, 200],
+        [494, 600], [523, 200], [587, 400], [659, 400], [523, 400], [440, 400], [440, 400], null,
+      ],
+      groove: [
+        [523, 220], [587, 220], [659, 300], [784, 180], [659, 180], [587, 260],
+        [523, 220], [440, 240], [523, 280], [659, 220], [784, 300], null,
+      ],
+      synthwave: [
+        [392, 260], [523, 260], [587, 260], [784, 320], [698, 200], [587, 200],
+        [523, 260], [392, 260], [523, 220], [698, 360], null,
+      ],
+      rush: [
+        [659, 140], [698, 140], [784, 160], [880, 160], [784, 140], [698, 140],
+        [659, 140], [587, 140], [659, 140], [784, 220], null,
+      ],
+    };
   }
 
   get _musicOn() { return Settings.get('music'); }
-  get _sfxOn()   { return Settings.get('sfx');   }
+  get _sfxOn() { return Settings.get('sfx'); }
 
   _ctx() {
-    if (!this._ac) try { this._ac = new (window.AudioContext||window.webkitAudioContext)(); } catch(_){ /* ignored */ }
-    if (this._ac?.state==='suspended') this._ac.resume();
+    if (!this._ac) try { this._ac = new (window.AudioContext || window.webkitAudioContext)(); } catch (_) { /* ignored */ }
+    if (this._ac?.state === 'suspended') this._ac.resume();
     return this._ac;
   }
 
-  _tone(freq, dur, type='square', vol=0.2, delay=0) {
-    if (!this._sfxOn) return;
+  _tone(freq, dur, type = 'square', vol = 0.2, delay = 0, channel = 'sfx') {
+    if (channel === 'sfx' && !this._sfxOn) return;
+    if (channel === 'music' && !this._musicOn) return;
     const ac = this._ctx(); if (!ac) return;
-    const osc = ac.createOscillator(), g = ac.createGain();
+    const osc = ac.createOscillator();
+    const g = ac.createGain();
     osc.connect(g); g.connect(ac.destination);
     osc.type = type;
-    osc.frequency.setValueAtTime(freq, ac.currentTime+delay);
-    g.gain.setValueAtTime(0, ac.currentTime+delay);
-    g.gain.linearRampToValueAtTime(vol, ac.currentTime+delay+0.01);
-    g.gain.exponentialRampToValueAtTime(0.001, ac.currentTime+delay+dur/1000);
-    osc.start(ac.currentTime+delay);
-    osc.stop(ac.currentTime+delay+dur/1000+0.05);
+    osc.frequency.setValueAtTime(freq, ac.currentTime + delay);
+    g.gain.setValueAtTime(0, ac.currentTime + delay);
+    g.gain.linearRampToValueAtTime(vol, ac.currentTime + delay + 0.01);
+    g.gain.exponentialRampToValueAtTime(0.001, ac.currentTime + delay + dur / 1000);
+    osc.start(ac.currentTime + delay);
+    osc.stop(ac.currentTime + delay + dur / 1000 + 0.05);
   }
 
-  move()         { this._tone(220,35,'square',0.07); }
-  rotate()       { this._tone(320,45,'square',0.09); }
-  land()         { this._tone(110,70,'square',0.16); }
-  hold()         { this._tone(440,60,'sine',0.12); }
-  clear(n)       { [392,523,659,880].slice(0,n).forEach((f,i)=>this._tone(f,90,'sine',0.22,i*0.055)); }
-  levelUp(lvl) {
-    const tones = [];
-    const vol = 0.25;
-    switch(lvl) {
-    case 2: // kurze aufsteigende Tonfolge
-      tones.push([523,150],[659,150],[784,150],[1047,200]);
-      break;
-    case 3: // etwas länger, höhere Töne
-      tones.push([523,150],[659,150],[784,150],[1047,150],[1319,250]);
-      break;
-    case 4: // Dreiklang + Oktave
-      tones.push([523,100],[659,100],[784,100],[1047,300],[523,150],[1047,200]);
-      break;
-    case 5: // Fünf-Ton-Fanfare
-      tones.push([523,120],[659,120],[784,120],[1047,120],[1319,400]);
-      break;
-    case 6: // Schnellere Akzente + Bass
-      tones.push([261,100],[523,80],[659,80],[784,80],[1047,80],[1319,300]);
-      break;
-    case 7: // Triumphale Sequenz
-      tones.push([523,200],[659,150],[784,150],[1047,200],[1319,150],[1568,400]);
-      break;
-    default: // Level 8+ episch mit Akkordfolge
-      tones.push([523,150],[784,100],[1047,150],[659,100],[880,150],[1319,250],[1568,400],[1047,200],[1568,400]);
-      break;
-    }
-    tones.forEach(([f,d],i) => this._tone(f, d, 'triangle', vol + (lvl>=8?0.1:0), i*0.08));
+  move() { this._tone(220, 35, 'square', 0.07); }
+  rotate() { this._tone(320, 45, 'square', 0.09); }
+  land() { this._tone(110, 70, 'square', 0.16); }
+  hold() { this._tone(440, 60, 'sine', 0.12); }
+  clear(n) { [392, 523, 659, 880].slice(0, n).forEach((f, i) => this._tone(f, 90, 'sine', 0.22, i * 0.055)); }
+
+  _themeForLevel(level) {
+    if (level >= 8) return 'rush';
+    if (level >= 6) return 'synthwave';
+    if (level >= 4) return 'groove';
+    return 'classic';
   }
-  over()         { [440,330,220,110].forEach((f,i)=>this._tone(f,180,'sawtooth',0.18,i*0.13)); }
-  hardDrop(n)    { this._tone(140+n*4,55,'square',0.14); }
+
+  _setMusicTheme(theme) {
+    if (!this._melodies[theme] || this._currentTheme === theme) return;
+    this._currentTheme = theme;
+    this._mIdx = 0;
+  }
+
+  levelUp(lvl) {
+    const fanfares = {
+      2: [[523, 150], [659, 150], [784, 150], [1047, 220]],
+      3: [[523, 140], [659, 140], [784, 140], [1047, 160], [1319, 260]],
+      4: [[523, 110], [659, 110], [784, 110], [1047, 300], [523, 140], [1047, 200]],
+      5: [[523, 120], [659, 120], [784, 120], [1047, 120], [1319, 360]],
+      6: [[261, 100], [523, 80], [659, 80], [784, 80], [1047, 80], [1319, 280]],
+      7: [[523, 180], [659, 140], [784, 140], [1047, 180], [1319, 140], [1568, 340]],
+      default: [[523, 140], [784, 100], [1047, 140], [659, 100], [880, 140], [1319, 220], [1568, 360]],
+    };
+    const tones = fanfares[lvl] || fanfares.default;
+    tones.forEach(([f, d], i) => this._tone(f, d, 'triangle', 0.28 + (lvl >= 8 ? 0.08 : 0), i * 0.08));
+
+    this._setMusicTheme(this._themeForLevel(lvl));
+  }
+
+  over() { [440, 330, 220, 110].forEach((f, i) => this._tone(f, 180, 'sawtooth', 0.18, i * 0.13)); }
+  hardDrop(n) { this._tone(140 + n * 4, 55, 'square', 0.14); }
 
   startMusic() {
     if (!this._musicOn) return;
-    this._mIdx = 0; this._playNote();
+    this._mIdx = 0;
+    this._playNote();
   }
+
   _playNote() {
     if (!this._musicOn) return;
-    const note = this._melody[this._mIdx % this._melody.length];
+    const seq = this._melodies[this._currentTheme] || this._melodies.classic;
+    const note = seq[this._mIdx % seq.length];
     this._mIdx++;
-    const dur = note ? note[1] : 200;
-    if (note) this._tone(note[0], dur*0.88, 'square', 0.07);
-    this._mTimer = setTimeout(()=>this._playNote(), dur);
+    const dur = note ? note[1] : 180;
+    if (note) this._tone(note[0], dur * 0.88, 'square', 0.07, 0, 'music');
+    this._mTimer = setTimeout(() => this._playNote(), dur);
   }
-  stopMusic() { clearTimeout(this._mTimer); this._mTimer=null; }
+
+  stopMusic() {
+    clearTimeout(this._mTimer);
+    this._mTimer = null;
+  }
+
+  resetTheme() {
+    this._currentTheme = 'classic';
+    this._mIdx = 0;
+  }
 
   applySettings() {
     if (!Settings.get('music')) this.stopMusic();
@@ -794,6 +822,7 @@ class TetrisController {
     this.$('btn-pause').textContent='Pause';
     this.$('level-select').disabled=true;
 
+    this.sound.resetTheme();
     this.sound.startMusic();
     this._setStateLabel('Running');
     this.rafId=requestAnimationFrame(t=>this._loop(t));
